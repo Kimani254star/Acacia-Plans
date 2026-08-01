@@ -3,12 +3,12 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Acacia Plans — Strategic Planning & Performance Hub</title>
-<meta name="description" content="Acacia Plans Hub — objectives, action items, kpis, project milestones, and resources (live-synced with Acacia ERP)." />
+<title>Acacia Payroll — Employees, Payslips & Statutory</title>
+<meta name="description" content="Acacia Payroll Hub — employees, attendance, earnings, payslips, statutory deductions and reports (live-synced with Acacia ERP)." />
 <script>
-  // Shared Supabase project (same as your other Acacia apps)
-  window.__SUPA_URL__ = 'https://swgyefbzplelxrjcovef.supabase.co';
-  window.__SUPA_KEY__ = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN3Z3llZmJ6cGxlbHhyamNvdmVmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1MDU4MzIsImV4cCI6MjA5NzA4MTgzMn0.U2zDNqRfdEgTgldBd7CcEhfsmGXvYZ14yh-4yYC2HlY';
+  // Shared Supabase project (same as app 1701)
+  window.__SUPA_URL__ = 'https://skatovltmnsuiolduwfr.supabase.co';
+  window.__SUPA_KEY__ = 'sb_publishable_AS3lfXtQELv5CTl8HX6OPQ_8HtYBfQp';
 </script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="https://cdn.tailwindcss.com"></script>
@@ -33,7 +33,7 @@
   <div class="w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden">
     <div class="p-6 text-center border-b border-slate-100">
       <div class="w-14 h-14 mx-auto rounded-xl bg-gradient-to-br from-acacia-500 to-acacia-700 flex items-center justify-center text-white font-bold text-2xl">A</div>
-      <h1 class="mt-3 text-xl font-bold text-slate-800">Acacia Plans</h1>
+      <h1 class="mt-3 text-xl font-bold text-slate-800">Acacia Payroll</h1>
       <p class="text-sm text-slate-500">Sign in or create your workspace account.</p>
     </div>
     <div class="flex border-b border-slate-100">
@@ -73,9 +73,22 @@
 <div id="app" class="hidden flex-col h-screen">
   <header class="flex items-center justify-between px-4 h-14 bg-white border-b border-slate-200 shrink-0">
     <div class="flex items-center gap-3">
-      <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-acacia-500 to-acacia-700 flex items-center justify-center text-white font-bold">📋</div>
-      <div class="leading-tight"><div class="font-bold text-acacia-800">Acacia Plans</div>
-      <div class="text-[10px] uppercase tracking-wider text-slate-400 flex items-center gap-1">Plans & Performance · <span id="syncDot" class="inline-block w-2 h-2 rounded-full bg-slate-300"></span> <span id="syncStatus">idle</span></div></div>
+      
+      <!-- Company Logo Section -->
+      <div class="flex items-center gap-2 pr-3 border-r border-slate-200">
+        <img src="acaciabooks-logo.png" alt="Logo" class="h-8 w-auto object-contain" />
+        <div class="font-bold text-[10px] text-slate-700 tracking-wide uppercase leading-tight">
+          Spear Tech<br>dvlp
+        </div>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-acacia-500 to-acacia-700 flex items-center justify-center text-white font-bold">💵</div>
+        <div class="leading-tight">
+          <div class="font-bold text-acacia-800">Acacia Payroll</div>
+          <div class="text-[10px] uppercase tracking-wider text-slate-400 flex items-center gap-1">Payroll Hub · <span id="syncDot" class="inline-block w-2 h-2 rounded-full bg-slate-300"></span> <span id="syncStatus">idle</span></div>
+        </div>
+      </div>
     </div>
     <div class="flex items-center gap-2">
       <button onclick="openMail()" class="text-xs px-3 py-2 rounded-lg border border-slate-200 hover:bg-slate-50">✉️ Compose</button>
@@ -87,20 +100,145 @@
           <a href="./app_1701-1_3.html" class="block px-3 py-2 hover:bg-slate-50">🏠 Acacia ERP (Main)</a>
           <a href="./acacia-mail_4.html" class="block px-3 py-2 hover:bg-slate-50">✉️ Acacia Mail</a>
           <a href="./acacia-inventory.html" class="block px-3 py-2 hover:bg-slate-50">📦 Inventory</a>
-          <a href="./acacia-payroll.html" class="block px-3 py-2 hover:bg-slate-50">💵 Payroll</a>
-          <a href="./acacia-plans.html" class="block px-3 py-2 hover:bg-slate-50 font-semibold text-acacia-700">📋 Plans</a>
+          <a href="./acacia-payroll.html" class="block px-3 py-2 hover:bg-slate-50 font-semibold text-acacia-700">💵 Payroll</a>
+          <a href="./acacia-expense.html" class="block px-3 py-2 hover:bg-slate-50">💰 Expense</a>
         </div>
       </div>
       <div id="userAvatar" class="w-9 h-9 rounded-full bg-acacia-700 text-white flex items-center justify-center text-xs font-bold"></div>
       <button onclick="signOut()" class="text-xs px-3 py-2 rounded-lg border border-slate-200 hover:bg-slate-50">Sign out</button>
     </div>
   </header>
-  <div class="flex flex-1 overflow-hidden">
+
+  <div class="flex flex-1 overflow-hidden relative">
     <aside class="w-60 bg-white border-r border-slate-200 p-3 overflow-y-auto shrink-0">
-      <div class="text-[10px] font-bold uppercase text-slate-400 px-2 mb-2">📋 Strategic Plans</div>
+      <div class="text-[10px] font-bold uppercase text-slate-400 px-2 mb-2">💵 Payroll Hub</div>
       <nav id="navList" class="space-y-1 text-sm"></nav>
     </aside>
+
     <main class="flex-1 overflow-auto p-6"><div id="view" class="fade-in"></div></main>
+
+    <!-- RIGHT SIDEBAR -->
+    <aside id="rightSidebar" class="hidden w-12 bg-white border-l border-slate-200 p-2 overflow-y-auto shrink-0 flex flex-col items-center space-y-4">
+      <button onclick="toggleAcaciaNotebook()" title="Acacia Notebook" class="w-8 h-8 flex items-center justify-center hover:bg-slate-100 rounded-lg transition-colors text-base">📔</button>
+      <button onclick="toggleWebinarPanel()" title="Webinars" class="w-8 h-8 flex items-center justify-center hover:bg-slate-100 rounded-lg transition-colors text-base">🎥</button>
+      <button onclick="toggleCommPanel()" title="Communication" class="w-8 h-8 flex items-center justify-center hover:bg-slate-100 rounded-lg transition-colors text-base">💬</button>
+      <button onclick="toggleSupportPopup()" title="Support Hub" class="w-8 h-8 flex items-center justify-center hover:bg-slate-100 rounded-lg transition-colors text-base">🎧</button>
+      <button onclick="toggleOrgDetails()" title="Organization Details" class="w-8 h-8 flex items-center justify-center hover:bg-slate-100 rounded-lg transition-colors text-base">🏢</button>
+      <div class="w-6 h-px bg-slate-200 my-1"></div>
+      <button onclick="openGDocs()" title="Google Docs" class="w-8 h-8 flex items-center justify-center hover:bg-slate-100 rounded-lg transition-colors text-base">📄</button>
+      <button onclick="openGSheets()" title="Google Sheets" class="w-8 h-8 flex items-center justify-center hover:bg-slate-100 rounded-lg transition-colors text-base">📊</button>
+      <button onclick="openGPhotos()" title="Google Photos" class="w-8 h-8 flex items-center justify-center hover:bg-slate-100 rounded-lg transition-colors text-base">🖼️</button>
+      <button onclick="openGCalendar()" title="Google Calendar" class="w-8 h-8 flex items-center justify-center hover:bg-slate-100 rounded-lg transition-colors text-base">📅</button>
+    </aside>
+  </div>
+
+  <!-- PANELS & POPUPS -->
+  <div id="acaciaNotebookPanel" class="hidden fixed top-20 right-16 w-80 h-half bg-white border border-gray-200 rounded-xl shadow-2xl flex flex-col z-20 overflow-hidden text-xs">
+    <div class="p-3 bg-purple-600 text-white font-bold flex justify-between items-center shrink-0">
+      <span>📔 Acacia Notebook</span>
+      <button onclick="toggleAcaciaNotebook()" class="hover:text-purple-200 font-bold text-sm">✕</button>
+    </div>
+    <div class="p-2 bg-slate-50 border-b border-gray-200 flex gap-1 shrink-0">
+      <button onclick="setNoteCategory('Work')" class="px-2 py-1 bg-purple-100 text-purple-700 rounded-md font-medium hover:bg-purple-200">Work</button>
+      <button onclick="setNoteCategory('Personal')" class="px-2 py-1 bg-blue-100 text-blue-700 rounded-md font-medium hover:bg-blue-200">Personal</button>
+      <button onclick="setNoteCategory('Ideas')" class="px-2 py-1 bg-amber-100 text-amber-700 rounded-md font-medium hover:bg-amber-200">Ideas</button>
+    </div>
+    <div id="acaciaNoteList" class="flex-1 overflow-y-auto p-3 space-y-2 bg-slate-50/50"></div>
+    <div class="p-2 bg-white border-t border-gray-100 flex gap-1 shrink-0">
+      <input id="acaciaNoteText" type="text" placeholder="Write payroll note..." class="flex-1 h-8 px-2 border border-gray-300 rounded-md outline-none text-xs" />
+      <button onclick="saveAcaciaNote()" class="px-3 bg-purple-600 hover:bg-purple-700 text-white rounded-md font-bold text-xs">Save</button>
+      <button onclick="clearAcaciaNotes()" class="px-2 border border-gray-200 text-gray-500 rounded-md hover:bg-gray-50 text-xs">Clear</button>
+    </div>
+  </div>
+
+  <div id="webinarPanel" class="hidden fixed top-20 right-16 w-80 h-half bg-white border border-gray-200 rounded-xl shadow-2xl flex flex-col z-20 overflow-hidden text-xs">
+    <div class="p-3 bg-rose-600 text-white font-bold flex justify-between items-center shrink-0">
+      <span>🎥 Webinar Scheduler</span>
+      <button onclick="toggleWebinarPanel()" class="hover:text-rose-200 font-bold text-sm">✕</button>
+    </div>
+    <div class="p-3 border-b border-gray-200 bg-slate-50 space-y-2 shrink-0">
+      <input id="webinarTitle" type="text" placeholder="Webinar Session Title" class="w-full h-8 px-2 border border-gray-300 rounded-md outline-none text-xs bg-white" />
+      <div class="grid grid-cols-2 gap-1.5">
+        <input id="webinarDate" type="datetime-local" class="h-8 px-2 border border-gray-300 rounded-md outline-none text-xs bg-white" />
+        <input id="webinarLink" type="text" placeholder="Meeting URL Link" class="h-8 px-2 border border-gray-300 rounded-md outline-none text-xs bg-white" />
+      </div>
+      <div class="flex gap-1.5">
+        <button onclick="addWebinar()" class="flex-1 h-8 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-md text-xs">Add Session</button>
+        <button onclick="clearWebinars()" class="px-2 border border-gray-200 text-gray-500 rounded-md hover:bg-gray-50 text-xs">Clear</button>
+      </div>
+    </div>
+    <div id="webinarList" class="flex-1 overflow-y-auto p-3 space-y-2 bg-slate-50/50"></div>
+  </div>
+
+  <div id="commPanel" class="hidden fixed top-20 right-16 w-80 h-half bg-white border border-gray-200 rounded-xl shadow-2xl flex flex-col z-20 overflow-hidden text-xs">
+    <div class="p-3 bg-blue-700 text-white font-bold flex justify-between items-center shrink-0">
+      <span>💬 Dispatch Terminal</span>
+      <button onclick="toggleCommPanel()" class="hover:text-blue-200 font-bold text-sm">✕</button>
+    </div>
+    <div class="p-3 border-b border-gray-200 bg-slate-50 space-y-2 shrink-0">
+      <input id="commUser" type="text" placeholder="Recipient user identifier" class="w-full h-8 px-2 border border-gray-300 rounded-md outline-none text-xs bg-white" />
+      <textarea id="commMessage" placeholder="Type internal memo data lines..." class="w-full h-14 p-2 border border-gray-300 rounded-md outline-none text-xs resize-none bg-white"></textarea>
+      <div class="flex gap-1 justify-between items-center">
+        <div class="flex gap-1">
+          <button onclick="insertTemplate('Payslip Link')" class="px-1.5 py-0.5 bg-gray-200 rounded text-[10px] text-gray-600 hover:bg-gray-300">Payslip template</button>
+          <button onclick="insertTemplate('Payroll Report')" class="px-1.5 py-0.5 bg-gray-200 rounded text-[10px] text-gray-600 hover:bg-gray-300">Report update</button>
+        </div>
+        <button onclick="sendPrivateMessage()" class="px-3 h-7 bg-blue-700 hover:bg-blue-800 text-white font-bold rounded-md text-xs">Send</button>
+      </div>
+      <button onclick="sharePrivateReport()" class="w-full h-7 border border-blue-200 text-blue-700 hover:bg-blue-50 font-medium rounded-md text-xs">Share Cryptographic Ledger Report Context</button>
+    </div>
+    <div id="commLog" class="flex-1 overflow-y-auto p-3 space-y-2 bg-slate-50/50"></div>
+  </div>
+
+  <div id="supportPopup" class="hidden fixed bottom-20 right-4 w-96 bg-white border border-gray-300 rounded-lg shadow-xl z-50">
+    <div class="bg-blue-900 text-white px-3 py-2 rounded-t-lg flex justify-between items-center">
+      <div>
+        <h3 class="font-bold">🎧 Acacia AI Support</h3>
+        <small class="text-blue-100">Ask me anything about Acacia Payroll Hub</small>
+      </div>
+      <button onclick="toggleSupportPopup()" class="text-white text-xl hover:text-gray-200">✕</button>
+    </div>
+
+    <div id="supportMessages" class="h-80 overflow-y-auto p-3 bg-white text-black text-sm space-y-2">
+      <div class="bg-white border border-gray-300 rounded-lg shadow-sm p-3">
+        <h2 class="text-base font-bold text-blue-900 mb-1">🎧 Welcome to Acacia AI Support</h2>
+        <p class="text-gray-700 text-xs mb-3">I'm your intelligent Acacia Payroll Hub assistant. I can guide you through managing employees, attendance, earnings, payslips, statutory deductions, and payroll reports.</p>
+        
+        <p class="font-semibold text-gray-800 text-xs mb-1">💵 Covered Payroll Modules:</p>
+        <div class="grid grid-cols-2 gap-1 text-xs mb-3 text-gray-700">
+          <div>👥 Employees</div>
+          <div>💰 Earnings</div>
+          <div>📊 Gross Pay</div>
+          <div>📅 Attendance</div>
+          <div>📄 Payslips</div>
+          <div>⚖️ Statutory Deductions</div>
+          <div>📈 Payroll Reports</div>
+          <div>🔌 Integrations</div>
+        </div>
+
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-2 mb-1">
+          <p class="font-semibold text-blue-900 text-xs mb-1">💬 Try asking:</p>
+          <ul class="list-disc ml-4 space-y-0.5 text-gray-700 text-xs">
+            <li>How do I add a new employee?</li>
+            <li>How are statutory deductions calculated?</li>
+            <li>Where do I review monthly payslips?</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="border-t p-2 bg-gray-50 flex flex-col gap-1">
+      <div class="flex gap-1">
+        <a href="https://wa.me/254717346231" target="_blank" class="flex-1 flex items-center justify-center gap-1 bg-green-600 hover:bg-green-700 text-white py-1.5 rounded text-xs font-semibold transition">📱 WhatsApp</a>
+        <a href="mailto:info@acaciabooks.ke" class="flex-1 flex items-center justify-center gap-1 bg-gray-600 hover:bg-gray-700 text-white py-1.5 rounded text-xs font-semibold transition">📧 Email</a>
+        <button onclick="toggleTawkChat()" class="flex-1 flex items-center justify-center gap-1 bg-blue-600 hover:bg-blue-700 text-white py-1.5 rounded text-xs font-semibold transition">💬 Chat</button>
+      </div>
+    </div>
+
+    <div class="border-t p-2">
+      <input id="supportQuestion" type="text" class="w-full border border-gray-300 rounded px-2 py-1.5 mb-1.5 text-xs text-black placeholder-gray-400 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Type your payroll question...">
+      <button onclick="sendSupportQuestion()" class="w-full bg-blue-900 hover:bg-blue-800 text-white py-1.5 rounded text-xs font-semibold transition">Send</button>
+    </div>
   </div>
 </div>
 
@@ -160,10 +298,16 @@ function switchAuthTab(t){const s=t==='signin';
   tabSignUp.classList.toggle('text-slate-500',s);tabSignUp.classList.toggle('border-transparent',s);
   signinForm.classList.toggle('hidden',!s);signupForm.classList.toggle('hidden',s);}
 
+/* Sidepanel toggle functions */
+function toggleAcaciaNotebook(){ document.getElementById('acaciaNotebookPanel')?.classList.toggle('hidden'); }
+function toggleWebinarPanel(){ document.getElementById('webinarPanel')?.classList.toggle('hidden'); }
+function toggleCommPanel(){ document.getElementById('commPanel')?.classList.toggle('hidden'); }
+function toggleSupportPopup(){ document.getElementById('supportPopup')?.classList.toggle('hidden'); }
+
 /* Supabase client (shared project with Acacia ERP) */
 const sb = window.supabase.createClient(window.__SUPA_URL__, window.__SUPA_KEY__);
 
-/* Pull the shared users list from app_state */
+/* Pull the shared users list from app_state (app 1707 stores it under 'users') */
 async function fetchUsers(){
   try{
     const { data } = await sb.from('app_state').select('value').eq('key','users').maybeSingle();
@@ -228,28 +372,32 @@ function signOut(){localStorage.removeItem(SESSION_KEY);location.reload()}
 function toggleApps(){appsMenu.classList.toggle('hidden')}
 document.addEventListener('click',e=>{if(!e.target.closest('#appsMenu')&&!e.target.closest('button[onclick*=toggleApps]')) appsMenu?.classList.add('hidden')});
 
-/* ============ Company-scoped keys ============ */
+/* ============ Company-scoped keys (matches app 1707's getCompanyKey) ============ */
 function currentCompanyId(){ const u=currentUser(); return u?.companyId || 'default_company'; }
 function scopedKey(k){ return k + '_' + currentCompanyId(); }
 
-/* Planning submodules mapped to backend app_state keys */
+/* Payroll submodules mapped to app 1701 keys */
 const MODULES = [
-  { id:'objectives',  label:'Strategic Objectives', key:'plan_objectives' },
-  { id:'actionItems', label:'Action Plans',         key:'plan_actions'    },
-  { id:'kpis',        label:'KPIs & Metrics',       key:'plan_kpis'       },
-  { id:'milestones',  label:'Project Milestones',   key:'plan_milestones' },
-  { id:'budgets',     label:'Resource Allocation',  key:'plan_budgets'    },
-  { id:'reviews',     label:'Performance Reviews',  key:'plan_reviews'    }
+  { id:'employees',  label:'Employees',            key:'employees'        },
+  { id:'earnings',   label:'Earnings',             key:'earnings'         },
+  { id:'grossPay',   label:'Gross Pay',            key:'payrollRecords'   },
+  { id:'attendance', label:'Attendance',           key:'attendance'       },
+  { id:'payslips',   label:'Payslips',             key:'payrollPayments'  },
+  { id:'statutory',  label:'Statutory Deductions', key:'esrRecords'       },
+  { id:'reports',    label:'Payroll Reports',      key:'overtimeSummary'  },
+  { id:'integrations', label:'Integrations',       key:'payroll_integrations' },
 ];
 
-/* Structured layout fields for unique plans module definitions */
+/* Structured layout matching exact Payroll fields schema */
 const MODULE_FIELDS = {
-  objectives: ['Objective ID', 'Objective Title', 'Pillar / Category', 'Target Year', 'Owner', 'Status'],
-  actionItems: ['Action ID', 'Task Description', 'Linked Objective', 'Assigned To', 'Due Date', 'Status'],
-  kpis: ['KPI Code', 'Metric Name', 'Baseline Value', 'Target Goal', 'Current Actual', 'Update Frequency'],
-  milestones: ['Project Name', 'Milestone Description', 'Target Delivery Date', 'Deliverable Output', 'Status'],
-  budgets: ['Resource / Expense Item', 'Category Allocation', 'Budgeted Amount', 'Approved By', 'Utilized So Far'],
-  reviews: ['Review Cycle', 'Evaluation Scope', 'Reviewer', 'Date Executed', 'Key Findings / Next Steps']
+  employees: ['Employee ID', 'Full Name', 'Designation', 'Department', 'Join Date', 'Status'],
+  earnings: ['Employee Name', 'Basic Salary', 'House Allowance', 'Transport Allowance', 'Other Bonuses'],
+  grossPay: ['Employee Name', 'Month/Year', 'Basic Earned', 'Allowances Total', 'Gross Pay Amount'],
+  attendance: ['Employee Name', 'Date', 'Status (Present/Absent)', 'Check In', 'Check Out', 'Overtime Hours'],
+  payslips: ['Payslip ID', 'Employee Name', 'Net Pay', 'Payment Status', 'Paid Via', 'Date Disbursed'],
+  statutory: ['Employee Name', 'Tax/PAYE Deducted', 'NHIF/Medical', 'NSSF/Pension', 'Total Deductions'],
+  reports: ['Report Name', 'Period Covered', 'Total Workspace Gross', 'Total Workspace Deductions', 'Net Disbursed Summary'],
+  integrations: ['Connected System', 'API Key Status', 'Last Sync Timestamp', 'Sync Status Details']
 };
 
 const store = {};                 // { moduleId: [rows] }
@@ -266,6 +414,11 @@ async function pullOne(m){
     const scoped=scopedKey(m.key);
     let { data, error } = await sb.from('app_state').select('value').eq('key', scoped).maybeSingle();
     if(error) throw error;
+    if(!data){
+      // Fallback: legacy unscoped key (older ERP records)
+      const r = await sb.from('app_state').select('value').eq('key', m.key).maybeSingle();
+      data = r.data;
+    }
     store[m.id] = Array.isArray(data?.value) ? data.value : [];
   } catch(e) {
     console.warn(`Failed pulling key ${m.key}:`, e);
@@ -326,7 +479,7 @@ function renderView(){
           <tr>${cols.length?cols.map(c=>`<th class="px-3 py-2">${escapeHtml(c)}</th>`).join(''):'<th class="px-3 py-2">Value</th>'}<th class="px-3 py-2"></th></tr>
         </thead>
         <tbody>
-          ${rows.length===0?`<tr><td colspan="${(cols.length||1)+1}" class="text-center text-slate-400 py-10">No plans entries initialized yet. Click <b>+ New</b> to map elements.</td></tr>`:
+          ${rows.length===0?`<tr><td colspan="${(cols.length||1)+1}" class="text-center text-slate-400 py-10">No ${m.label.toLowerCase()} records synced yet. Create records in Acacia ERP, or click <b>+ New</b> here.</td></tr>`:
           rows.map((r,i)=>`<tr class="border-t border-slate-100 hover:bg-slate-50 align-top">
             ${cols.length?cols.map(c=>`<td class="px-3 py-2 max-w-xs truncate">${escapeHtml(cellText(r?.[c]))}</td>`).join(''):`<td class="px-3 py-2">${escapeHtml(cellText(r))}</td>`}
             <td class="px-3 py-2 text-right"><button onclick="delRow(${i})" class="text-red-500 hover:underline text-xs">Delete</button></td>
@@ -343,7 +496,7 @@ function addRow(){
 
   entryModalTitle.textContent = `Add New ${m.label.slice(-1) === 's' ? m.label.slice(0, -1) : m.label}`;
   
-  // Build form inputs dynamically from fields map
+  // Clear layout fields and rebuild structured form inputs 
   entryModalFields.innerHTML = fields.map(field => `
     <div>
       <label class="block text-xs font-semibold text-slate-600 mb-1">${escapeHtml(field)}</label>
@@ -382,7 +535,7 @@ async function saveNewRecord(e){
 }
 
 async function delRow(i){
-  if(!confirm('Delete this planning record?')) return;
+  if(!confirm('Delete this record from Acacia ERP?')) return;
   const m = MODULES.find(x=>x.id===active);
   store[m.id].splice(i,1);
   if(await pushOne(m)) renderView(); else await pullOne(m).then(renderView);
@@ -458,6 +611,10 @@ function boot(){
   if(!u){authScreen.classList.remove('hidden');app.classList.add('hidden');app.classList.remove('flex');return}
   authScreen.classList.add('hidden');app.classList.remove('hidden');app.classList.add('flex');
   userAvatar.textContent=initials(u.companyName||u.name||u.email);userAvatar.title=(u.companyName||'')+' · '+(u.email||'');
+  
+  // Display right sidebar once logged in
+  document.getElementById('rightSidebar')?.classList.remove('hidden');
+  
   renderNav(); renderView(); pullAll();
 }
 boot();
