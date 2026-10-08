@@ -1,3 +1,85 @@
+/* Public home page: single-view navigation, same behaviour as the Support site */
+  function hpMore(btn){
+    var card=btn.closest('.hp-tier');
+    var open=card.classList.toggle('hp-open');
+    btn.innerHTML=open?'Show less &#9652;':'Show '+btn.getAttribute('data-n')+' more features &#9662;';
+  }
+  function hpBillingToggle(){
+    var yearly=document.getElementById('hpBilling').checked;
+    document.querySelectorAll('#homePage .hp-amt').forEach(function(el){
+      var p=yearly?+el.getAttribute('data-year'):+el.getAttribute('data-month');
+      el.textContent='KES '+p.toLocaleString('en-US');
+      var per=el.parentElement.querySelector('.hp-per');
+      if(per) per.textContent=yearly?'/yr':'/mo';
+    });
+  }
+(function(){
+  var root=document.getElementById('homePage');
+  var slides=root.querySelectorAll('.hp-slide'),si=0;
+  setInterval(function(){
+    if(root.style.display!=='block'||slides.length<2) return;
+    slides[si].classList.remove('active'); si=(si+1)%slides.length; slides[si].classList.add('active');
+  },5000);
+  var nav=document.getElementById('hpNav'),burger=document.getElementById('hpBurger');
+  burger.addEventListener('click',function(){
+    var open=nav.classList.toggle('open');
+    burger.setAttribute('aria-expanded',open?'true':'false');
+  });
+  var pages=root.querySelectorAll('.hp-page');
+  var valid={top:1,about:1,features:1,process:1,pricing:1,faq:1,contact:1};
+  function show(id){
+    if(!valid[id]) id='top';
+    pages.forEach(function(p){p.classList.toggle('hp-active',p.getAttribute('data-page')===id);});
+    root.querySelectorAll('.hp-nav a').forEach(function(a){a.classList.toggle('hp-current',a.getAttribute('href')==='#'+id);});
+    nav.classList.remove('open'); burger.setAttribute('aria-expanded','false');
+    root.scrollTop=0;
+  }
+  root.querySelectorAll('a[data-scroll]').forEach(function(a){
+    a.addEventListener('click',function(e){ e.preventDefault(); show(a.getAttribute('href').slice(1)); });
+  });
+  var y=document.getElementById('footerYear'); if(y) y.textContent=new Date().getFullYear();
+  show('top');
+  window.hpShowPage=show;
+})();
+function hpShowHome(){
+  document.getElementById('authScreen').style.display='none';
+  document.getElementById('homePage').style.display='block';
+  window.hpShowPage&&window.hpShowPage('top');
+}
+function hpHideHome(){ document.getElementById('homePage').style.display='none'; }
+function hpShowLogin(tab){
+  hpHideHome();
+  document.getElementById('authScreen').style.display='flex';
+  switchAuthTab(tab||'login');
+}
+function hpTheme(){
+  if(typeof toggleTheme==='function'){ toggleTheme(); return; }
+  var h=document.documentElement;
+  if(h.getAttribute('data-theme')==='dark') h.removeAttribute('data-theme'); else h.setAttribute('data-theme','dark');
+}
+function hpContact(e){
+  e.preventDefault();
+  var n=document.getElementById('hpName').value.trim(), m=document.getElementById('hpEmail').value.trim(), t=document.getElementById('hpMsg').value.trim();
+  var body='From: '+n+' <'+m+'>\n\n'+t;
+  window.location.href='mailto:hello@example.com?subject='+encodeURIComponent('Acacia Plans enquiry')+'&body='+encodeURIComponent(body);
+  document.getElementById('contactConfirm').classList.remove('hidden');
+  return false;
+}
+
+/* Plans uses Tailwind screens, so its home/auth switching is different */
+function hpShowHome(){
+  authScreen.classList.add('hidden');
+  document.getElementById('homePage').style.display='block';
+  window.hpShowPage&&window.hpShowPage('top');
+}
+function hpHideHome(){ document.getElementById('homePage').style.display='none'; }
+function hpShowLogin(tab){
+  hpHideHome();
+  authScreen.classList.remove('hidden');
+  switchAuthTab(tab==='register'?'signup':'signin');
+}
+
+;
 /* ===== acacia-cloud: shared Supabase layer for the Acacia apps (same project as Books) =====
    - Sign in / sign up against the same accounts Books uses (table app_accounts)
    - New companies + users show up in Support (acacia_company_status, app_accounts, acacia_app_usage)
@@ -50,7 +132,7 @@
     try { if ((await rpc('acx_account_state', { p_company: low(cid), p_login: low(login) })) === 'deleted') return 'This account was removed by Acacia support.'; } catch (e) {}
     try {
       var r = await req('acacia_company_status?select=status&company_id=eq.' + enc(cid));
-      if (r.ok) { var j = await r.json(); var s = j[0] && j[0].status; if (s && s !== 'active') return 'Your company account is "' + s + '". Please contact Acacia support.'; }
+      if (r.ok) { var j = await r.json(); var s = j[0] && j[0].status; if (s === 'pending') return 'Your company is waiting for approval by Acacia support. You will be able to sign in as soon as it is approved.'; if (s && s !== 'active') return 'Your company account is "' + s + '". Please contact Acacia support.'; }
     } catch (e) {}
     return null;
   }
@@ -76,7 +158,8 @@
   async function register(o) {
     var salt = newSalt(), h = await hash(o.password, salt);
     var id = await rpc('acx_register_company', { p_company: o.company, p_name: o.name, p_email: low(o.email), p_hash: h, p_salt: salt, p_app: cfg.app });
-    return { companyId: id, passwordHash: h, passwordSalt: salt };
+    var blocked = await gate(id, o.email);
+    return { companyId: id, passwordHash: h, passwordSalt: salt, blocked: blocked };
   }
 
   /* teammates added inside an app (CRM Users & Roles). The app's own role is kept per app; Books sees admin/user */
@@ -254,6 +337,7 @@ async function doSignUp(e){
   let r;
   try{ r = await AcaciaCloud.register({company, name:fullName, email, password:pass}); }
   catch(err){ authErr(suError, err.code==='exists' ? 'This company already has an account with that email - use Sign In instead.' : (err.code==='offline' ? 'Could not reach Acacia. Check your internet connection and try again.' : (err.message||'Could not create the account.'))); return; }
+  if(r.blocked){ authErr(suError,'Account created. ' + r.blocked); return; }
   localStorage.setItem(SESSION_KEY, JSON.stringify({ email, name:fullName, companyId:r.companyId, companyName:company }));
   boot();
 }
@@ -494,8 +578,8 @@ function boot(){
   let u=currentUser();
   if(u && !AcaciaCloud.isCloudId(u.companyId)){ localStorage.removeItem(SESSION_KEY); u=null; }
   if(u){ AcaciaCloud.start({companyId:u.companyId, email:u.email, role:'admin'}).then(function(r){ if(String(r).indexOf('blocked:')===0){ alert(String(r).slice(8)); signOut(); } }).catch(function(){}); }
-  if(!u){authScreen.classList.remove('hidden');app.classList.add('hidden');app.classList.remove('flex');return}
-  authScreen.classList.add('hidden');app.classList.remove('hidden');app.classList.add('flex');
+  if(!u){hpShowHome();app.classList.add('hidden');app.classList.remove('flex');return}
+  hpHideHome();authScreen.classList.add('hidden');app.classList.remove('hidden');app.classList.add('flex');
   userAvatar.textContent=initials(u.companyName||u.name||u.email);userAvatar.title=(u.companyName||'')+' · '+(u.email||'');
   
   // Display right sidebar once logged in
