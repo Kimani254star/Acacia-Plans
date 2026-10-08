@@ -1,0 +1,506 @@
+/* ===== acacia-cloud: shared Supabase layer for the Acacia apps (same project as Books) =====
+   - Sign in / sign up against the same accounts Books uses (table app_accounts)
+   - New companies + users show up in Support (acacia_company_status, app_accounts, acacia_app_usage)
+   - Each app's data is saved per company in acacia_app_data and loaded on any device
+   Needs acacia_apps_cloud.sql to be run once in Supabase. Offline: falls back to this browser's copy. */
+(function (w) {
+  'use strict';
+  var URL_ = 'https://xglsampckermarjpczdf.supabase.co';
+  var KEY_ = 'sb_publishable_x-dPR7pzhvJgag9soW0I8w_yfKTmi6A';
+  var H = { apikey: KEY_, Authorization: 'Bearer ' + KEY_, 'Content-Type': 'application/json' };
+  var cfg = null, ctx = null, timer = 0, hbTimer = 0;
+  var rawSet = Storage.prototype.setItem;
+  var low = function (v) { return String(v == null ? '' : v).trim().toLowerCase(); };
+  var enc = encodeURIComponent;
+  var isCloudId = function (id) { return /^ACC-\d+$/i.test(String(id || '')); };
+  function err(code, msg) { var e = new Error(msg || code); e.code = code; return e; }
+
+  async function req(path, opt) {
+    var ctl = w.AbortController ? new AbortController() : null;
+    var t = ctl ? setTimeout(function () { ctl.abort(); }, 12000) : null;
+    try {
+      var r = await fetch(URL_ + '/rest/v1/' + path, Object.assign({ headers: H, signal: ctl ? ctl.signal : undefined }, opt || {}));
+      if (t) clearTimeout(t);
+      return r;
+    } catch (e) { if (t) clearTimeout(t); throw err('offline', 'Cannot reach the Acacia cloud. Check your internet connection.'); }
+  }
+  async function rpc(name, args) {
+    var r = await req('rpc/' + name, { method: 'POST', body: JSON.stringify(args || {}) });
+    var j = null; try { j = await r.json(); } catch (e) {}
+    if (!r.ok) {
+      var m = (j && (j.message || j.hint)) || ('HTTP ' + r.status);
+      var e = err(/already exists|exists/i.test(m) ? 'exists' : (r.status === 404 ? 'missing' : 'rpc'), m); e.status = r.status; throw e;
+    }
+    return j;
+  }
+
+  /* same hashing as Books: SHA-256 of "salt:password" */
+  function hex(buf) { return Array.prototype.map.call(new Uint8Array(buf), function (b) { return ('0' + b.toString(16)).slice(-2); }).join(''); }
+  function newSalt() { var a = new Uint8Array(16); crypto.getRandomValues(a); return hex(a); }
+  async function hash(pass, salt) { return hex(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(salt + ':' + pass))); }
+  async function verify(d, pass) {
+    d = d || {};
+    if (d.passwordHash && d.passwordSalt) return (await hash(pass, d.passwordSalt)) === d.passwordHash;
+    return typeof d.password === 'string' && d.password === pass;
+  }
+  function mapRole(r, d) { return cfg && cfg.mapRole ? cfg.mapRole(r, d) : (/^admin/i.test(String(r || '')) ? 'Administrator' : (r || 'Administrator')); }
+
+  /* deleted / suspended companies are blocked (fails open if the cloud can't be reached) */
+  async function gate(cid, login) {
+    try { if ((await rpc('acx_account_state', { p_company: low(cid), p_login: low(login) })) === 'deleted') return 'This account was removed by Acacia support.'; } catch (e) {}
+    try {
+      var r = await req('acacia_company_status?select=status&company_id=eq.' + enc(cid));
+      if (r.ok) { var j = await r.json(); var s = j[0] && j[0].status; if (s && s !== 'active') return 'Your company account is "' + s + '". Please contact Acacia support.'; }
+    } catch (e) {}
+    return null;
+  }
+
+  async function signIn(email, pass, company) {
+    email = low(email);
+    var r = await req('app_accounts?select=login_id,username,company_id,data&login_id=eq.' + enc(email));
+    if (!r.ok) throw err('offline', 'Could not read accounts (' + r.status + '). Run acacia_apps_cloud.sql in Supabase.');
+    var rows = await r.json(), ok = [], cn = low(company);
+    if (cn) rows = rows.filter(function (x) { var d = x.data || {}; return low(d.companyName) === cn || low(x.company_id) === cn || (d.previousCompanyNames || []).map(low).indexOf(cn) > -1; });
+    for (var i = 0; i < rows.length; i++) if (await verify(rows[i].data, pass)) ok.push(rows[i]);
+    if (!ok.length) return null;
+    var row = ok[0];
+    if (ok.length > 1) {
+      var pick = w.prompt('This login belongs to more than one company:\n' + ok.map(function (x, n) { return (n + 1) + '. ' + ((x.data && x.data.companyName) || x.company_id) + ' (' + x.company_id + ')'; }).join('\n') + '\n\nType the number to open:', '1');
+      row = ok[(parseInt(pick, 10) || 1) - 1] || ok[0];
+    }
+    var msg = await gate(row.company_id, email); if (msg) throw err('blocked', msg);
+    var d = row.data || {};
+    return { companyId: row.company_id, company: d.companyName || '', name: d.fullName || d.username || email.split('@')[0], email: email, role: mapRole(d.role, d), passwordHash: d.passwordHash, passwordSalt: d.passwordSalt };
+  }
+
+  async function register(o) {
+    var salt = newSalt(), h = await hash(o.password, salt);
+    var id = await rpc('acx_register_company', { p_company: o.company, p_name: o.name, p_email: low(o.email), p_hash: h, p_salt: salt, p_app: cfg.app });
+    return { companyId: id, passwordHash: h, passwordSalt: salt };
+  }
+
+  /* teammates added inside an app (CRM Users & Roles). The app's own role is kept per app; Books sees admin/user */
+  var booksRole = function (r) { return /^admin/i.test(String(r || '')) ? 'admin' : 'user'; };
+  async function addUser(o) {
+    var salt = newSalt(), h = await hash(o.password, salt);
+    await rpc('acx_add_user', { p_company: o.companyId, p_name: o.name, p_email: low(o.email), p_role: booksRole(o.role), p_hash: h, p_salt: salt, p_app: cfg.app, p_app_role: o.role || '' });
+    return { passwordHash: h, passwordSalt: salt };
+  }
+  function setRole(companyId, email, role) { return rpc('acx_set_user_role', { p_company: companyId, p_email: low(email), p_role: booksRole(role), p_app: cfg.app, p_app_role: role || '' }); }
+  function removeUser(companyId, email) { return rpc('acx_remove_user', { p_company: companyId, p_email: low(email) }); }
+
+  /* keep a copy of cloud users in this browser so the app's own session code keeps working (and offline sign-in) */
+  function cacheUser(usersKey, u) {
+    try {
+      var list = JSON.parse(localStorage.getItem(usersKey) || '[]');
+      var rec = { companyId: u.companyId, company: u.company, name: u.name, email: low(u.email), role: u.role, passwordHash: u.passwordHash, passwordSalt: u.passwordSalt };
+      var i = list.findIndex(function (x) { return low(x.email) === rec.email && x.companyId === rec.companyId; });
+      if (i > -1) { list[i] = Object.assign({}, list[i], rec); delete list[i].password; } else list.push(rec);
+      rawSet.call(localStorage, usersKey, JSON.stringify(list));
+    } catch (e) {}
+  }
+  function verifyLocal(u, pass) { return verify(u, pass); }
+
+  /* accounts that only ever existed in this browser get a cloud company; their data and teammates move with them.
+     'all' is the local users array: it is updated in place (caller saves it). Returns the signed-in user's new record. */
+  async function migrate(u, pass, all) {
+    var oldId = u.companyId, same = (all || [u]).filter(function (x) { return x.companyId === oldId; });
+    var owner = same.find(function (x) { return /^admin/i.test(String(x.role || 'Administrator')) && x.password; }) || u;
+    var ownerPass = owner === u ? pass : owner.password;
+    var r = await register({ company: owner.company, name: owner.name, email: owner.email, password: ownerPass });
+    for (var i = 0; i < same.length; i++) {
+      var x = same[i];
+      if (x === owner) { x.passwordHash = r.passwordHash; x.passwordSalt = r.passwordSalt; }
+      else {
+        var pw = x === u ? pass : x.password;
+        if (pw) { try { var h = await addUser({ companyId: r.companyId, name: x.name, email: x.email, password: pw, role: x.role || 'Administrator' }); x.passwordHash = h.passwordHash; x.passwordSalt = h.passwordSalt; } catch (e) { continue; } }
+        else continue;
+      }
+      delete x.password; x.companyId = r.companyId;
+    }
+    var o = cfg.dataKey(oldId), n = cfg.dataKey(r.companyId), v = localStorage.getItem(o);
+    if (v != null) { rawSet.call(localStorage, n, v); localStorage.removeItem(o); rawSet.call(localStorage, dirtyKey(r.companyId), '1'); }
+    return same.find(function (x) { return low(x.email) === low(u.email) && x.companyId === r.companyId; }) || null;
+  }
+
+  /* ---- data sync (one JSON blob per company per app) ---- */
+  function tsKey(c) { return 'acx_ts_' + cfg.app + '_' + (c || ctx.companyId); }
+  function dirtyKey(c) { return 'acx_dirty_' + cfg.app + '_' + (c || ctx.companyId); }
+  async function pullRow(app) {
+    var r = await req('acacia_app_data?select=value,updated_at&key=eq.data&company_id=eq.' + enc(ctx.companyId) + '&app=eq.' + enc(app));
+    if (!r.ok) return null; var j = await r.json(); return j[0] || null;
+  }
+  async function pushNow() {
+    if (!ctx || !isCloudId(ctx.companyId)) return false;
+    var v = localStorage.getItem(cfg.dataKey(ctx.companyId)); if (v == null) return false;
+    try {
+      var r = await req('acacia_app_data?on_conflict=company_id,app,key', { method: 'POST', headers: Object.assign({}, H, { Prefer: 'resolution=merge-duplicates,return=representation' }), body: JSON.stringify({ company_id: ctx.companyId, app: cfg.app, key: 'data', value: v }) });
+      if (r.ok) { var j = await r.json(); rawSet.call(localStorage, tsKey(), (j[0] && j[0].updated_at) || ''); localStorage.removeItem(dirtyKey()); return true; }
+    } catch (e) {}
+    return false;
+  }
+  function schedule() {
+    if (!ctx || !isCloudId(ctx.companyId)) return;
+    rawSet.call(localStorage, dirtyKey(), '1');
+    clearTimeout(timer); timer = setTimeout(pushNow, 2500);
+  }
+  function flush() {
+    if (!ctx || !isCloudId(ctx.companyId) || localStorage.getItem(dirtyKey()) !== '1') return;
+    clearTimeout(timer);
+    var v = localStorage.getItem(cfg.dataKey(ctx.companyId)); if (v == null) return;
+    try {
+      fetch(URL_ + '/rest/v1/acacia_app_data?on_conflict=company_id,app,key', { method: 'POST', keepalive: v.length < 60000, headers: Object.assign({}, H, { Prefer: 'resolution=merge-duplicates,return=minimal' }), body: JSON.stringify({ company_id: ctx.companyId, app: cfg.app, key: 'data', value: v }) }).then(function (r) { if (r.ok) localStorage.removeItem(dirtyKey()); }).catch(function () {});
+    } catch (e) {}
+  }
+  async function pullData() {
+    var row = await pullRow(cfg.app);
+    var dirty = localStorage.getItem(dirtyKey()) === '1', last = localStorage.getItem(tsKey());
+    if (row && !dirty && row.updated_at !== last) { rawSet.call(localStorage, cfg.dataKey(ctx.companyId), row.value); rawSet.call(localStorage, tsKey(), row.updated_at); }
+    else if (!row) { if (localStorage.getItem(cfg.dataKey(ctx.companyId)) != null) await pushNow(); }
+    else if (dirty) await pushNow();
+  }
+  /* read-only copies of another app's data (e.g. Expenses reads Payroll) */
+  async function pullExtras() {
+    var ex = cfg.readFrom || [];
+    for (var i = 0; i < ex.length; i++) { try { var row = await pullRow(ex[i].app); if (row) rawSet.call(localStorage, ex[i].dataKey(ctx.companyId), row.value); } catch (e) {} }
+  }
+
+  function heartbeat() {
+    if (!ctx || !isCloudId(ctx.companyId) || !ctx.email) return;
+    var k = 'acx_hb_' + ctx.companyId + '_' + cfg.app + '_' + ctx.email;
+    if (Date.now() - Number(localStorage.getItem(k) || 0) < 3e5) return;
+    rawSet.call(localStorage, k, String(Date.now()));
+    try { fetch(URL_ + '/rest/v1/rpc/acx_heartbeat', { method: 'POST', headers: H, keepalive: true, body: JSON.stringify({ p_company: ctx.companyId, p_app: cfg.app, p_user: ctx.email, p_role: String(ctx.role || '') }) }).catch(function () {}); } catch (e) {}
+  }
+
+  /* called when a user enters the app: returns 'ok' | 'local' | 'blocked:<message>' */
+  async function start(user) {
+    ctx = { companyId: user.companyId, email: low(user.email), role: user.role || '' };
+    if (!isCloudId(ctx.companyId)) return 'local';
+    var msg = await gate(ctx.companyId, ctx.email); if (msg) return 'blocked:' + msg;
+    try { await pullData(); await pullExtras(); } catch (e) {}
+    heartbeat(); clearInterval(hbTimer); hbTimer = setInterval(function () { heartbeat(); }, 3e5);
+    return 'ok';
+  }
+  function stop() { flush(); clearInterval(hbTimer); ctx = null; }
+
+  function init(c) {
+    cfg = c;
+    Storage.prototype.setItem = function (k, v) {
+      rawSet.apply(this, arguments);
+      try { if (this === w.localStorage && ctx && k === cfg.dataKey(ctx.companyId)) schedule(); } catch (e) {}
+    };
+    w.addEventListener('pagehide', flush);
+    document.addEventListener('visibilitychange', function () { if (document.hidden) flush(); });
+  }
+
+  w.AcaciaCloud = { init: init, signIn: signIn, register: register, addUser: addUser, setRole: setRole, removeUser: removeUser, cacheUser: cacheUser, verifyLocal: verifyLocal, migrate: migrate, start: start, stop: stop, flush: flush, isCloudId: isCloudId, gate: gate, URL: URL_, KEY: KEY_, rpc: rpc, req: req };
+})(window);
+;
+/* ============ Shared auth linked to Acacia ERP (app 1707) ============ */
+const SESSION_KEY='acacia_session';
+function currentUser(){try{return JSON.parse(localStorage.getItem(SESSION_KEY)||'null')}catch{return null}}
+function initials(n){return (n||'?').split(/\s+/).map(s=>s[0]).slice(0,2).join('').toUpperCase()}
+function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]))}
+function toCompanyId(name){ return 'comp_' + String(name||'').toLowerCase().replace(/[^a-z0-9]/g,'_'); }
+function switchAuthTab(t){const s=t==='signin';
+  tabSignIn.classList.toggle('text-acacia-700',s);tabSignIn.classList.toggle('border-acacia-600',s);
+  tabSignIn.classList.toggle('text-slate-500',!s);tabSignIn.classList.toggle('border-transparent',!s);
+  tabSignUp.classList.toggle('text-acacia-700',!s);tabSignUp.classList.toggle('border-acacia-600',!s);
+  tabSignUp.classList.toggle('text-slate-500',s);tabSignUp.classList.toggle('border-transparent',s);
+  signinForm.classList.toggle('hidden',!s);signupForm.classList.toggle('hidden',s);}
+
+/* Sidepanel toggle functions */
+function toggleAcaciaNotebook(){ document.getElementById('acaciaNotebookPanel')?.classList.toggle('hidden'); }
+function toggleWebinarPanel(){ document.getElementById('webinarPanel')?.classList.toggle('hidden'); }
+function toggleCommPanel(){ document.getElementById('commPanel')?.classList.toggle('hidden'); }
+function toggleSupportPopup(){ document.getElementById('supportPopup')?.classList.toggle('hidden'); }
+
+/* Supabase client (shared project with Acacia ERP) */
+const sb = window.supabase.createClient(window.__SUPA_URL__, window.__SUPA_KEY__);
+
+AcaciaCloud.init({app:'Plans', dataKey:function(c){ return 'acx_plans_local_' + c; }});
+const enc = encodeURIComponent;
+
+async function accountExists(email){
+  try{ const r = await AcaciaCloud.req('app_accounts?select=login_id&login_id=eq.' + enc(String(email).toLowerCase())); if(!r.ok) return false; return (await r.json()).length > 0; }catch(e){ return false; }
+}
+function authErr(el, msg){ el.textContent = msg; el.classList.remove('hidden'); }
+
+async function doSignIn(e){
+  e.preventDefault();
+  siError.classList.add('hidden');
+  const company=(siCompany.value||'').trim();
+  const email=(siEmail.value||'').trim().toLowerCase();
+  const pass=siPass.value;
+  if(!company||!email||!pass){ authErr(siError,'Please enter your company name, email and password.'); return; }
+  let u=null;
+  try{ u = await AcaciaCloud.signIn(email, pass, company); }
+  catch(err){ authErr(siError, err.code==='blocked' ? err.message : 'Could not reach Acacia. Check your internet connection and try again.'); return; }
+  if(!u){ authErr(siError,'That email and password combination was not found.'); return; }
+  localStorage.setItem(SESSION_KEY, JSON.stringify({ email:u.email, name:u.name, companyId:u.companyId, companyName:u.company }));
+  boot();
+}
+
+async function doSignUp(e){
+  e.preventDefault();
+  suError.classList.add('hidden');
+  const company=(suCompany.value||'').trim();
+  const email=(suEmail.value||'').trim().toLowerCase();
+  const pass=suPass.value;
+  if(!company||!email){ authErr(suError,'Company name and email are required.'); return; }
+  if(!pass||pass.length<6){ authErr(suError,'Password must be at least 6 characters.'); return; }
+  const fullName=((suFirst.value||'')+' '+(suLast.value||'')).trim()||email;
+  let r;
+  try{ r = await AcaciaCloud.register({company, name:fullName, email, password:pass}); }
+  catch(err){ authErr(suError, err.code==='exists' ? 'This company already has an account with that email - use Sign In instead.' : (err.code==='offline' ? 'Could not reach Acacia. Check your internet connection and try again.' : (err.message||'Could not create the account.'))); return; }
+  localStorage.setItem(SESSION_KEY, JSON.stringify({ email, name:fullName, companyId:r.companyId, companyName:company }));
+  boot();
+}
+
+function signOut(){AcaciaCloud.stop();localStorage.removeItem(SESSION_KEY);location.reload()}
+function toggleApps(){appsMenu.classList.toggle('hidden')}
+document.addEventListener('click',e=>{if(!e.target.closest('#appsMenu')&&!e.target.closest('button[onclick*=toggleApps]')) appsMenu?.classList.add('hidden')});
+
+/* ============ Company-scoped keys (matches app 1707's getCompanyKey) ============ */
+function currentCompanyId(){ const u=currentUser(); return u?.companyId || 'default_company'; }
+function scopedKey(k){ return k + '_' + currentCompanyId(); }
+
+/* Payroll submodules mapped to app 1701 keys */
+const MODULES = [
+  { id:'employees',  label:'Employees',            key:'employees'        },
+  { id:'earnings',   label:'Earnings',             key:'earnings'         },
+  { id:'grossPay',   label:'Gross Pay',            key:'payrollRecords'   },
+  { id:'attendance', label:'Attendance',           key:'attendance'       },
+  { id:'payslips',   label:'Payslips',             key:'payrollPayments'  },
+  { id:'statutory',  label:'Statutory Deductions', key:'esrRecords'       },
+  { id:'reports',    label:'Payroll Reports',      key:'overtimeSummary'  },
+  { id:'integrations', label:'Integrations',       key:'payroll_integrations' },
+];
+
+/* Structured layout matching exact Payroll fields schema */
+const MODULE_FIELDS = {
+  employees: ['Employee ID', 'Full Name', 'Designation', 'Department', 'Join Date', 'Status'],
+  earnings: ['Employee Name', 'Basic Salary', 'House Allowance', 'Transport Allowance', 'Other Bonuses'],
+  grossPay: ['Employee Name', 'Month/Year', 'Basic Earned', 'Allowances Total', 'Gross Pay Amount'],
+  attendance: ['Employee Name', 'Date', 'Status (Present/Absent)', 'Check In', 'Check Out', 'Overtime Hours'],
+  payslips: ['Payslip ID', 'Employee Name', 'Net Pay', 'Payment Status', 'Paid Via', 'Date Disbursed'],
+  statutory: ['Employee Name', 'Tax/PAYE Deducted', 'NHIF/Medical', 'NSSF/Pension', 'Total Deductions'],
+  reports: ['Report Name', 'Period Covered', 'Total Workspace Gross', 'Total Workspace Deductions', 'Net Disbursed Summary'],
+  integrations: ['Connected System', 'API Key Status', 'Last Sync Timestamp', 'Sync Status Details']
+};
+
+const store = {};                 // { moduleId: [rows] }
+let active = MODULES[0].id;
+
+function setSync(status, tone){
+  syncStatus.textContent = status;
+  const dot = syncDot; dot.className = 'inline-block w-2 h-2 rounded-full ' +
+    ({ok:'bg-emerald-500',busy:'bg-amber-400 animate-pulse',err:'bg-red-500',idle:'bg-slate-300'}[tone]||'bg-slate-300');
+}
+
+async function pullOne(m){
+  try {
+    const r = await AcaciaCloud.req('company_state?select=value&company_id=eq.' + enc(currentCompanyId()) + '&key=eq.' + enc(m.key));
+    if(!r.ok) throw new Error('HTTP ' + r.status);
+    let v = ((await r.json())[0] || {}).value;
+    if(typeof v === 'string'){ try{ v = JSON.parse(v); }catch(e){ v = []; } }
+    store[m.id] = Array.isArray(v) ? v : [];
+  } catch(e) {
+    console.warn(`Failed pulling key ${m.key}:`, e);
+    store[m.id] = [];
+  }
+}
+async function pullAll(){
+  setSync('syncing…','busy');
+  try{
+    await Promise.all(MODULES.map(pullOne));
+    setSync('synced · '+(currentUser()?.companyName||'workspace'),'ok');
+    renderView();
+  }catch(e){ console.warn(e); setSync('sync error','err'); }
+}
+async function pushOne(m){
+  setSync('saving…','busy');
+  try{
+    const r = await AcaciaCloud.req('company_state?on_conflict=company_id,key', { method:'POST', headers:{ apikey:AcaciaCloud.KEY, Authorization:'Bearer '+AcaciaCloud.KEY, 'Content-Type':'application/json', Prefer:'resolution=merge-duplicates,return=minimal' }, body: JSON.stringify({ company_id: currentCompanyId(), key: m.key, value: JSON.stringify(store[m.id]||[]), updated_at: new Date().toISOString() }) });
+    if(!r.ok) throw new Error('HTTP ' + r.status);
+  }catch(error){ setSync('save error','err'); alert('Save failed: '+error.message); return false; }
+  setSync('synced · '+(currentUser()?.companyName||'workspace'),'ok'); return true;
+}
+
+/* Render Dashboard view layout */
+function renderNav(){
+  navList.innerHTML = MODULES.map(m=>`<button onclick="go('${m.id}')" class="nav-btn w-full text-left px-3 py-2 rounded-lg hover:bg-slate-100 ${m.id===active?'active':''}">${m.label}</button>`).join('');
+}
+function go(id){ active=id; renderNav(); renderView(); }
+
+function collectColumns(rows){
+  const defaultCols = MODULE_FIELDS[active] || [];
+  const seen = new Set(defaultCols);
+  rows.forEach(r => r && typeof r === 'object' && Object.keys(r).forEach(k => seen.add(k)));
+  return Array.from(seen).slice(0, 10);
+}
+function cellText(v){
+  if(v==null) return '';
+  if(typeof v==='object') return JSON.stringify(v);
+  return String(v);
+}
+function renderView(){
+  const m = MODULES.find(x=>x.id===active);
+  const rows = store[m.id] || [];
+  const cols = collectColumns(rows);
+  view.innerHTML = `
+    <div class="flex items-center justify-between mb-4">
+      <div><h2 class="text-2xl font-bold text-slate-800">${m.label}</h2>
+        <p class="text-sm text-slate-500">${rows.length} record${rows.length===1?'':'s'} · live from Acacia ERP · <code class="text-[11px] bg-slate-100 px-1 rounded">app_state.${m.key}</code></p></div>
+      <div class="flex gap-2">
+        <button onclick="exportCsv()" class="px-3 py-2 text-sm border border-slate-200 rounded-lg hover:bg-slate-50">Export CSV</button>
+        <button onclick="addRow()" class="px-4 py-2 text-sm bg-acacia-600 hover:bg-acacia-700 text-white rounded-lg font-semibold">+ New</button>
+      </div>
+    </div>
+    <div class="bg-white rounded-xl border border-slate-200 overflow-hidden"><div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead class="bg-slate-50 text-left text-xs uppercase text-slate-500">
+          <tr>${cols.length?cols.map(c=>`<th class="px-3 py-2">${escapeHtml(c)}</th>`).join(''):'<th class="px-3 py-2">Value</th>'}<th class="px-3 py-2"></th></tr>
+        </thead>
+        <tbody>
+          ${rows.length===0?`<tr><td colspan="${(cols.length||1)+1}" class="text-center text-slate-400 py-10">No ${m.label.toLowerCase()} records synced yet. Create records in Acacia ERP, or click <b>+ New</b> here.</td></tr>`:
+          rows.map((r,i)=>`<tr class="border-t border-slate-100 hover:bg-slate-50 align-top">
+            ${cols.length?cols.map(c=>`<td class="px-3 py-2 max-w-xs truncate">${escapeHtml(cellText(r?.[c]))}</td>`).join(''):`<td class="px-3 py-2">${escapeHtml(cellText(r))}</td>`}
+            <td class="px-3 py-2 text-right"><button onclick="delRow(${i})" class="text-red-500 hover:underline text-xs">Delete</button></td>
+          </tr>`).join('')}
+        </tbody>
+      </table></div></div>`;
+}
+
+/* Entry creation form control functions */
+function addRow(){
+  const m = MODULES.find(x=>x.id===active);
+  const fields = MODULE_FIELDS[m.id] || [];
+  if(!fields.length) return;
+
+  entryModalTitle.textContent = `Add New ${m.label.slice(-1) === 's' ? m.label.slice(0, -1) : m.label}`;
+  
+  // Clear layout fields and rebuild structured form inputs 
+  entryModalFields.innerHTML = fields.map(field => `
+    <div>
+      <label class="block text-xs font-semibold text-slate-600 mb-1">${escapeHtml(field)}</label>
+      <input type="text" data-field="${escapeHtml(field)}" required class="w-full h-10 px-3 rounded-lg border border-slate-300 outline-none text-sm focus:border-acacia-500 focus:ring-1 focus:ring-acacia-500" placeholder="Enter ${field.toLowerCase()}..."/>
+    </div>
+  `).join('');
+
+  entryModal.classList.remove('hidden');
+}
+
+function closeEntryModal(){
+  entryModal.classList.add('hidden');
+  entryModalForm.reset();
+}
+
+async function saveNewRecord(e){
+  e.preventDefault();
+  const m = MODULES.find(x=>x.id===active);
+  const rows = store[m.id] || [];
+  
+  const rec = {};
+  const inputs = entryModalFields.querySelectorAll('input[data-field]');
+  inputs.forEach(input => {
+    const key = input.getAttribute('data-field');
+    rec[key] = input.value.trim();
+  });
+
+  store[m.id] = [...rows, rec];
+  closeEntryModal();
+
+  if(await pushOne(m)) {
+    renderView();
+  } else {
+    await pullOne(m).then(renderView);
+  }
+}
+
+async function delRow(i){
+  if(!confirm('Delete this record from Acacia ERP?')) return;
+  const m = MODULES.find(x=>x.id===active);
+  store[m.id].splice(i,1);
+  if(await pushOne(m)) renderView(); else await pullOne(m).then(renderView);
+}
+
+function exportCsv(){
+  const m=MODULES.find(x=>x.id===active); const rows=store[m.id]||[]; const cols=collectColumns(rows);
+  const csv=[cols.join(','),...rows.map(r=>cols.map(c=>JSON.stringify(cellText(r?.[c]))).join(','))].join('\n');
+  const a=document.createElement('a');a.href='data:text/csv,'+encodeURIComponent(csv);a.download=m.key+'.csv';a.click();
+}
+
+/* ============ Acacia Mail bridge ============ */
+const MAIL_DATA_PREFIX = 'acacia_data_';
+function openMail(){ mmStatus.textContent=''; mmTo.value=''; mmSubject.value=''; mmBody.value=''; mailModal.classList.remove('hidden'); }
+function closeMail(){ mailModal.classList.add('hidden'); }
+function loadMailbox(email){
+  try{ return JSON.parse(localStorage.getItem(MAIL_DATA_PREFIX+email)) || {mails:[],events:[],aiChat:[]}; }
+  catch{ return {mails:[],events:[],aiChat:[]}; }
+}
+function saveMailbox(email, box){
+  localStorage.setItem(MAIL_DATA_PREFIX+email, JSON.stringify(box));
+  try{ sb.from('app_state').upsert({ key: MAIL_DATA_PREFIX+email, value: box, updated_at:new Date().toISOString() }, { onConflict:'key' }); }catch(e){}
+}
+async function sendMailFromApp(e){
+  e.preventDefault();
+  const u = currentUser();
+  if(!u){ mmStatus.textContent='Sign in first.'; return; }
+  const to = mmTo.value.trim().toLowerCase();
+  const subject = mmSubject.value.trim();
+  const bodyText = mmBody.value.trim();
+  if(!to||!subject||!bodyText) return;
+  mmStatus.textContent = 'Verifying recipient…';
+  const recipient = (await accountExists(to)) ? { email: to } : null;
+  if(!recipient){
+    mmStatus.textContent = '❌ No Acacia account uses that email. The message was not sent.';
+    return;
+  }
+  const bodyHtml = escapeHtml(bodyText).replace(/\n/g,'<br>');
+  const now = Date.now();
+  const mailId = 'm'+now;
+
+  const inbox = loadMailbox(recipient.email);
+  inbox.mails = inbox.mails || [];
+  inbox.mails.unshift({
+    id: mailId,
+    from: u.name || u.email,
+    email: u.email,
+    to: recipient.email,
+    subject, preview: bodyText.slice(0,90), body: bodyHtml,
+    time: now, read: false, starred: false, folder: 'inbox'
+  });
+  saveMailbox(recipient.email, inbox);
+
+  const sent = loadMailbox(u.email);
+  sent.mails = sent.mails || [];
+  sent.mails.unshift({
+    id: mailId+'_s',
+    from: u.name || u.email,
+    email: recipient.email,
+    to: recipient.email,
+    subject, preview: bodyText.slice(0,90), body: bodyHtml,
+    time: now, read: true, starred: false, folder: 'sent'
+  });
+  saveMailbox(u.email, sent);
+
+  mmStatus.textContent = '✅ Sent to '+recipient.email+' — will appear in their Acacia Mail inbox.';
+  setTimeout(closeMail, 1200);
+}
+
+function boot(){
+  let u=currentUser();
+  if(u && !AcaciaCloud.isCloudId(u.companyId)){ localStorage.removeItem(SESSION_KEY); u=null; }
+  if(u){ AcaciaCloud.start({companyId:u.companyId, email:u.email, role:'admin'}).then(function(r){ if(String(r).indexOf('blocked:')===0){ alert(String(r).slice(8)); signOut(); } }).catch(function(){}); }
+  if(!u){authScreen.classList.remove('hidden');app.classList.add('hidden');app.classList.remove('flex');return}
+  authScreen.classList.add('hidden');app.classList.remove('hidden');app.classList.add('flex');
+  userAvatar.textContent=initials(u.companyName||u.name||u.email);userAvatar.title=(u.companyName||'')+' · '+(u.email||'');
+  
+  // Display right sidebar once logged in
+  document.getElementById('rightSidebar')?.classList.remove('hidden');
+  
+  renderNav(); renderView(); pullAll();
+}
+boot();
