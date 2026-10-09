@@ -507,11 +507,13 @@ function renderNav(){
     let head = '';
     if(m.group && m.group !== last){ last = m.group; head = `<div class="text-[10px] font-bold uppercase text-slate-400 px-2 pt-4 pb-1">${escapeHtml(m.group)}</div>`; }
     return head + `<button onclick="go('${m.id}')" class="nav-btn w-full text-left px-3 py-2 rounded-lg hover:bg-slate-100 ${m.id===active?'active':''}">${escapeHtml(m.label)}</button>`;
-  }).join('');
+  }).join('')
+    + `<div class="text-[10px] font-bold uppercase text-slate-400 px-2 pt-4 pb-1">Settings</div><button onclick="go('appearance')" class="nav-btn w-full text-left px-3 py-2 rounded-lg hover:bg-slate-100 ${active==='appearance'?'active':''}">🎨 Appearance</button>`;
 }
 function go(id){ active = id; editIdx = null; renderNav(); renderView(); }
 
 function renderView(){
+  if(active==='appearance'){ view.innerHTML = '<div class="mb-4"><h2 class="text-2xl font-bold text-slate-800">🎨 Appearance</h2><p class="text-sm text-slate-500">Sidebar colour, text colour, font and font size.</p></div><div data-acacia-appearance></div>'; return; }
   const m = MODULES.find(x => x.id===active);
   if(m.id==='plans') return renderPlans(m);
   return renderLinked(m);
