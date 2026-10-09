@@ -157,7 +157,7 @@ function hpShowLogin(tab){
 
   async function register(o) {
     var salt = newSalt(), h = await hash(o.password, salt);
-    var id = await rpc('acx_register_company', { p_company: o.company, p_name: o.name, p_email: low(o.email), p_hash: h, p_salt: salt, p_app: cfg.app });
+    var id = await rpc('acx_register_company', { p_company: o.company, p_name: o.name, p_email: low(o.email), p_hash: h, p_salt: salt, p_app: cfg.app, p_plan: o.plan || '', p_billing: o.billing || 'monthly' });
     var blocked = await gate(id, o.email);
     return { companyId: id, passwordHash: h, passwordSalt: salt, blocked: blocked };
   }
@@ -277,6 +277,16 @@ function hpShowLogin(tab){
     document.addEventListener('visibilitychange', function () { if (document.hidden) flush(); });
   }
 
+  /* sign-up plan note: reads #regPlan / #regBilling and shows what the company will pay */
+  w.acxPlanChanged = function () {
+    var s = document.getElementById('regPlan'), b = document.getElementById('regBilling'), n = document.getElementById('regPlanNote');
+    if (!s || !n) return;
+    var o = s.options[s.selectedIndex], p = Number((o && o.getAttribute('data-price')) || 0), y = !!b && b.value === 'yearly';
+    var f = function (x) { return 'KES ' + x.toLocaleString('en-US'); };
+    n.textContent = y ? f(p * 10) + ' for the year (2 months free). Billed after Acacia support approves your account.' : f(p) + ' per month. Billed after Acacia support approves your account.';
+  };
+  setTimeout(function () { try { if (w.acxPlanChanged) w.acxPlanChanged(); } catch (e) {} }, 0);
+
   w.AcaciaCloud = { init: init, signIn: signIn, register: register, addUser: addUser, setRole: setRole, removeUser: removeUser, cacheUser: cacheUser, verifyLocal: verifyLocal, migrate: migrate, start: start, stop: stop, flush: flush, isCloudId: isCloudId, gate: gate, URL: URL_, KEY: KEY_, rpc: rpc, req: req };
 })(window);
 ;
@@ -335,7 +345,7 @@ async function doSignUp(e){
   if(!pass||pass.length<6){ authErr(suError,'Password must be at least 6 characters.'); return; }
   const fullName=((suFirst.value||'')+' '+(suLast.value||'')).trim()||email;
   let r;
-  try{ r = await AcaciaCloud.register({company, name:fullName, email, password:pass}); }
+  try{ r = await AcaciaCloud.register({company, name:fullName, email, password:pass, plan:(document.getElementById('regPlan')||{}).value||'', billing:(document.getElementById('regBilling')||{}).value||'monthly'}); }
   catch(err){ authErr(suError, err.code==='exists' ? 'This company already has an account with that email - use Sign In instead.' : (err.code==='offline' ? 'Could not reach Acacia. Check your internet connection and try again.' : (err.message||'Could not create the account.'))); return; }
   if(r.blocked){ authErr(suError,'Account created. ' + r.blocked); return; }
   localStorage.setItem(SESSION_KEY, JSON.stringify({ email, name:fullName, companyId:r.companyId, companyName:company }));
@@ -350,28 +360,79 @@ document.addEventListener('click',e=>{if(!e.target.closest('#appsMenu')&&!e.targ
 function currentCompanyId(){ const u=currentUser(); return u?.companyId || 'default_company'; }
 function scopedKey(k){ return k + '_' + currentCompanyId(); }
 
-/* Payroll submodules mapped to app 1701 keys */
+/* Plans Hub modules: the same records Acacia Books uses in its Plans Hub
+   (Plan Hub, Plan Progress, Plan Revenue). Keys match Books' storage keys. */
 const MODULES = [
-  { id:'employees',  label:'Employees',            key:'employees'        },
-  { id:'earnings',   label:'Earnings',             key:'earnings'         },
-  { id:'grossPay',   label:'Gross Pay',            key:'payrollRecords'   },
-  { id:'attendance', label:'Attendance',           key:'attendance'       },
-  { id:'payslips',   label:'Payslips',             key:'payrollPayments'  },
-  { id:'statutory',  label:'Statutory Deductions', key:'esrRecords'       },
-  { id:'reports',    label:'Payroll Reports',      key:'overtimeSummary'  },
-  { id:'integrations', label:'Integrations',       key:'payroll_integrations' },
+  { id:'plans',     label:'Plan Hub',        key:'plans' },
+  { id:'ownership', label:'Ownership',       key:'planOwnerships',  link:'planTitle', group:'Plan Progress' },
+  { id:'progress',  label:'Track Progress',  key:'planProgress',    link:'title' },
+  { id:'expenses',  label:'Track Expenses',  key:'operationalCosts',link:'planTitle', readonly:true },
+  { id:'revisions', label:'Review & Revise', key:'planRevisions',   link:'title' },
+  { id:'actions',   label:'Action Plan',     key:'planActionItems', link:'title' },
+  { id:'revenue',   label:'Plan Revenue',    key:'planRevenue',     link:'planTitle', group:'Revenue' },
+  { id:'employees', label:'Employees',       key:'employees',       hidden:true, readonly:true },
 ];
 
-/* Structured layout matching exact Payroll fields schema */
-const MODULE_FIELDS = {
-  employees: ['Employee ID', 'Full Name', 'Designation', 'Department', 'Join Date', 'Status'],
-  earnings: ['Employee Name', 'Basic Salary', 'House Allowance', 'Transport Allowance', 'Other Bonuses'],
-  grossPay: ['Employee Name', 'Month/Year', 'Basic Earned', 'Allowances Total', 'Gross Pay Amount'],
-  attendance: ['Employee Name', 'Date', 'Status (Present/Absent)', 'Check In', 'Check Out', 'Overtime Hours'],
-  payslips: ['Payslip ID', 'Employee Name', 'Net Pay', 'Payment Status', 'Paid Via', 'Date Disbursed'],
-  statutory: ['Employee Name', 'Tax/PAYE Deducted', 'NHIF/Medical', 'NSSF/Pension', 'Total Deductions'],
-  reports: ['Report Name', 'Period Covered', 'Total Workspace Gross', 'Total Workspace Deductions', 'Net Disbursed Summary'],
-  integrations: ['Connected System', 'API Key Status', 'Last Sync Timestamp', 'Sync Status Details']
+const PRIORITY = ['High','Medium','Low'];
+const STATUS_OWN = ['Not Started','In Progress','Completed','On Hold'];
+const STATUS_PROG = ['Not Started','In Progress','Completed','Delayed','On Hold'];
+const GOALS = ['Increase Sales / Revenue','Strategic','Operational','Performance','Development','Cost Reduction'];
+
+/* Field layout per module (t: text | select | date | number | textarea | multi; o: options or 'employees') */
+const FIELDS = {
+  plans: [
+    { k:'title', l:'Plan title', req:1 },
+    { k:'department', l:'Department' },
+    { k:'goalType', l:'Goal type', t:'select', o:GOALS },
+    { k:'priority', l:'Priority', t:'select', o:PRIORITY },
+    { k:'startDate', l:'Start date', t:'date' },
+    { k:'endDate', l:'End date', t:'date' },
+    { k:'target', l:'Target' },
+    { k:'targetAmount', l:'Target amount (KES)', t:'number' },
+    { k:'linkedBudget', l:'Linked budget' },
+    { k:'description', l:'Description', t:'textarea' },
+  ],
+  ownership: [
+    { k:'owner', l:'Owner', t:'select', o:'employees' },
+    { k:'team', l:'Team', t:'multi', o:'employees' },
+    { k:'status', l:'Status', t:'select', o:STATUS_OWN },
+    { k:'date', l:'Date', t:'date' },
+  ],
+  progress: [
+    { k:'progress', l:'Progress %', t:'number', req:1 },
+    { k:'status', l:'Status', t:'select', o:STATUS_PROG },
+    { k:'person', l:'Updated by' },
+    { k:'comment', l:'Comment', t:'textarea' },
+  ],
+  revisions: [
+    { k:'action', l:'Action', t:'select', o:['Extend (new end date)','Revise','Close plan'] },
+    { k:'newEndDate', l:'New end date (for Extend)', t:'date' },
+    { k:'comment', l:'Comment', t:'textarea' },
+  ],
+  actions: [
+    { k:'item', l:'Action item', req:1 },
+    { k:'person', l:'Responsible person' },
+    { k:'due', l:'Due date', t:'date' },
+    { k:'priority', l:'Priority', t:'select', o:PRIORITY },
+    { k:'status', l:'Status', t:'select', o:STATUS_PROG },
+    { k:'notes', l:'Notes', t:'textarea' },
+  ],
+  revenue: [
+    { k:'customer', l:'Customer' },
+    { k:'amount', l:'Amount (KES)', t:'number', req:1 },
+    { k:'fund', l:'Bank / fund' },
+    { k:'note', l:'Note' },
+  ],
+};
+
+/* Table columns per module: [key, heading] */
+const COLS = {
+  ownership: [['owner','Owner'],['team','Team'],['status','Status'],['date','Date']],
+  progress:  [['progress','Progress'],['status','Status'],['person','Updated by'],['comment','Comment'],['date','Date']],
+  expenses:  [['date','Date'],['description','Description'],['category','Category'],['bank','Bank'],['amount','Amount']],
+  revisions: [['action','Action'],['comment','Comment'],['date','Date']],
+  actions:   [['item','Action item'],['person','Person'],['due','Due'],['priority','Priority'],['status','Status'],['notes','Notes']],
+  revenue:   [['source','Source'],['invoiceNumber','Invoice'],['customer','Customer'],['amount','Amount'],['fund','Bank / fund'],['date','Date']],
 };
 
 const store = {};                 // { moduleId: [rows] }
@@ -412,108 +473,246 @@ async function pushOne(m){
   setSync('synced · '+(currentUser()?.companyName||'workspace'),'ok'); return true;
 }
 
-/* Render Dashboard view layout */
-function renderNav(){
-  navList.innerHTML = MODULES.map(m=>`<button onclick="go('${m.id}')" class="nav-btn w-full text-left px-3 py-2 rounded-lg hover:bg-slate-100 ${m.id===active?'active':''}">${m.label}</button>`).join('');
-}
-function go(id){ active=id; renderNav(); renderView(); }
+/* ============ Plans Hub views ============ */
+function cellText(v){ if(v==null) return ''; if(typeof v==='object') return JSON.stringify(v); return String(v); }
 
-function collectColumns(rows){
-  const defaultCols = MODULE_FIELDS[active] || [];
-  const seen = new Set(defaultCols);
-  rows.forEach(r => r && typeof r === 'object' && Object.keys(r).forEach(k => seen.add(k)));
-  return Array.from(seen).slice(0, 10);
+let selPlan = '';        // title of the plan chosen in the picker
+let editIdx = null;      // index (in store[module]) of the record being edited
+
+const plansList = () => store.plans || [];
+const empNames = () => (store.employees || []).map(e => e && (e.name || e['Full Name'])).filter(Boolean);
+const nowStr = () => new Date().toLocaleString();
+const todayStr = () => new Date().toISOString().slice(0,10);
+const fmtKES = n => 'KES ' + (parseFloat(n)||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
+const collected = t => (store.revenue||[]).filter(r => r && r.planTitle===t).reduce((s,r)=>s+(parseFloat(r.amount)||0),0);
+function curPlan(){
+  const ps = plansList();
+  if(!ps.some(p => p && p.title===selPlan)) selPlan = (ps[0] && ps[0].title) || '';
+  return ps.find(p => p && p.title===selPlan) || null;
 }
-function cellText(v){
-  if(v==null) return '';
-  if(typeof v==='object') return JSON.stringify(v);
-  return String(v);
+function setPlan(v){ selPlan = v; renderView(); }
+function cell(k, v, row){
+  if(Array.isArray(v)) v = v.join(', ');
+  if(k==='progress' && v!=='' && v!=null) return escapeHtml(v + '%');
+  if(k==='amount' || k==='targetAmount') return escapeHtml((parseFloat(v)||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2}));
+  if(k==='source') return v==='invoice' ? '🧾 Invoice' : '✍️ Manual';
+  if(k==='bank') return escapeHtml(v || (row && row.currentAccName) || '');
+  return escapeHtml(cellText(v));
 }
+const statusBadge = s => `<span class="px-2 py-0.5 rounded-full text-[11px] font-semibold ${({'Completed':'bg-emerald-100 text-emerald-700','In Progress':'bg-blue-100 text-blue-700','Delayed':'bg-red-100 text-red-700','On Hold':'bg-amber-100 text-amber-700'}[s])||'bg-slate-100 text-slate-600'}">${escapeHtml(s||'Not Started')}</span>`;
+
+function renderNav(){
+  let last = '';
+  navList.innerHTML = MODULES.filter(m => !m.hidden).map(m => {
+    let head = '';
+    if(m.group && m.group !== last){ last = m.group; head = `<div class="text-[10px] font-bold uppercase text-slate-400 px-2 pt-4 pb-1">${escapeHtml(m.group)}</div>`; }
+    return head + `<button onclick="go('${m.id}')" class="nav-btn w-full text-left px-3 py-2 rounded-lg hover:bg-slate-100 ${m.id===active?'active':''}">${escapeHtml(m.label)}</button>`;
+  }).join('');
+}
+function go(id){ active = id; editIdx = null; renderNav(); renderView(); }
+
 function renderView(){
-  const m = MODULES.find(x=>x.id===active);
-  const rows = store[m.id] || [];
-  const cols = collectColumns(rows);
+  const m = MODULES.find(x => x.id===active);
+  if(m.id==='plans') return renderPlans(m);
+  return renderLinked(m);
+}
+
+/* ---- Plan Hub: create plans + All Plans ---- */
+function renderPlans(m){
+  const ps = plansList();
+  const done = ps.filter(p => p.status==='Completed').length;
+  const run = ps.filter(p => p.status==='In Progress').length;
+  const target = ps.reduce((s,p)=>s+(parseFloat(p.targetAmount)||0),0);
+  const got = ps.reduce((s,p)=>s+collected(p.title),0);
+  const card = (t,v) => `<div class="bg-white rounded-xl border border-slate-200 p-4"><div class="text-[11px] uppercase font-semibold text-slate-400">${t}</div><div class="text-xl font-bold text-slate-800 mt-1">${v}</div></div>`;
   view.innerHTML = `
-    <div class="flex items-center justify-between mb-4">
-      <div><h2 class="text-2xl font-bold text-slate-800">${m.label}</h2>
-        <p class="text-sm text-slate-500">${rows.length} record${rows.length===1?'':'s'} · live from Acacia ERP · <code class="text-[11px] bg-slate-100 px-1 rounded">app_state.${m.key}</code></p></div>
+    <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+      <div><h2 class="text-2xl font-bold text-slate-800">🗂️ Plan Hub</h2>
+        <p class="text-sm text-slate-500">Create plans and track them from start to finish · same plans as Acacia Books</p></div>
       <div class="flex gap-2">
+        <input id="planSearch" oninput="filterPlans()" placeholder="Search plans…" class="h-9 px-3 text-sm border border-slate-200 rounded-lg outline-none"/>
         <button onclick="exportCsv()" class="px-3 py-2 text-sm border border-slate-200 rounded-lg hover:bg-slate-50">Export CSV</button>
-        <button onclick="addRow()" class="px-4 py-2 text-sm bg-acacia-600 hover:bg-acacia-700 text-white rounded-lg font-semibold">+ New</button>
+        <button onclick="openForm()" class="px-4 py-2 text-sm bg-acacia-600 hover:bg-acacia-700 text-white rounded-lg font-semibold">+ New Plan</button>
       </div>
     </div>
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+      ${card('Plans', ps.length)}${card('In progress', run)}${card('Completed', done)}${card('Revenue collected / target', fmtKES(got)+' / '+fmtKES(target))}
+    </div>
     <div class="bg-white rounded-xl border border-slate-200 overflow-hidden"><div class="overflow-x-auto">
-      <table class="w-full text-sm">
-        <thead class="bg-slate-50 text-left text-xs uppercase text-slate-500">
-          <tr>${cols.length?cols.map(c=>`<th class="px-3 py-2">${escapeHtml(c)}</th>`).join(''):'<th class="px-3 py-2">Value</th>'}<th class="px-3 py-2"></th></tr>
-        </thead>
-        <tbody>
-          ${rows.length===0?`<tr><td colspan="${(cols.length||1)+1}" class="text-center text-slate-400 py-10">No ${m.label.toLowerCase()} records synced yet. Create records in Acacia ERP, or click <b>+ New</b> here.</td></tr>`:
-          rows.map((r,i)=>`<tr class="border-t border-slate-100 hover:bg-slate-50 align-top">
-            ${cols.length?cols.map(c=>`<td class="px-3 py-2 max-w-xs truncate">${escapeHtml(cellText(r?.[c]))}</td>`).join(''):`<td class="px-3 py-2">${escapeHtml(cellText(r))}</td>`}
-            <td class="px-3 py-2 text-right"><button onclick="delRow(${i})" class="text-red-500 hover:underline text-xs">Delete</button></td>
-          </tr>`).join('')}
-        </tbody>
-      </table></div></div>`;
+      <table class="w-full text-sm"><thead class="bg-slate-50 text-left text-xs uppercase text-slate-500"><tr>
+        <th class="px-3 py-2">Plan</th><th class="px-3 py-2">Department</th><th class="px-3 py-2">Goal</th><th class="px-3 py-2">Priority</th>
+        <th class="px-3 py-2">Dates</th><th class="px-3 py-2 text-right">Target</th><th class="px-3 py-2 text-right">Collected</th>
+        <th class="px-3 py-2">Progress</th><th class="px-3 py-2">Status</th><th class="px-3 py-2">Owner</th><th class="px-3 py-2"></th></tr></thead>
+        <tbody id="plansBody"></tbody></table></div></div>`;
+  filterPlans();
+}
+function filterPlans(){
+  const q = ((document.getElementById('planSearch')||{}).value||'').toLowerCase();
+  const rows = plansList().map((p,i)=>({p,i})).filter(x => x.p && (!q || JSON.stringify(x.p).toLowerCase().includes(q)));
+  const body = document.getElementById('plansBody'); if(!body) return;
+  body.innerHTML = rows.length ? rows.map(({p,i}) => {
+    const pct = Math.max(0,Math.min(100,parseFloat(p.progress)||0));
+    return `<tr class="border-t border-slate-100 hover:bg-slate-50 align-top">
+      <td class="px-3 py-2 font-semibold">${escapeHtml(p.title)}</td><td class="px-3 py-2">${escapeHtml(p.department||'')}</td>
+      <td class="px-3 py-2">${escapeHtml(p.goalType||'')}</td><td class="px-3 py-2">${escapeHtml(p.priority||'')}</td>
+      <td class="px-3 py-2 whitespace-nowrap">${escapeHtml(p.startDate||'?')} → ${escapeHtml(p.endDate||'?')}</td>
+      <td class="px-3 py-2 text-right">${cell('targetAmount',p.targetAmount)}</td><td class="px-3 py-2 text-right">${cell('amount',collected(p.title))}</td>
+      <td class="px-3 py-2 min-w-[110px]"><div class="h-2 bg-slate-100 rounded-full overflow-hidden"><div class="h-2 bg-acacia-600" style="width:${pct}%"></div></div><div class="text-[11px] text-slate-500 mt-1">${pct}%</div></td>
+      <td class="px-3 py-2">${statusBadge(p.status)}</td><td class="px-3 py-2">${escapeHtml(p.owner||'')}</td>
+      <td class="px-3 py-2 text-right whitespace-nowrap"><button onclick="openPlan('${i}')" class="text-acacia-700 hover:underline text-xs mr-2">Open</button><button onclick="openForm(${i})" class="text-acacia-700 hover:underline text-xs mr-2">Edit</button><button onclick="delRow(${i})" class="text-red-500 hover:underline text-xs">Delete</button></td></tr>`;
+  }).join('') : `<tr><td colspan="11" class="text-center text-slate-400 py-10">No plans yet. Click <b>+ New Plan</b> to create your first plan, or create one in Acacia Books.</td></tr>`;
+}
+function openPlan(i){ const p = plansList()[i]; if(p){ selPlan = p.title; go('ownership'); } }
+
+/* ---- Plan Progress / Revenue sub-modules (always for one chosen plan) ---- */
+function renderLinked(m){
+  const ps = plansList(), plan = curPlan();
+  if(!plan){
+    view.innerHTML = `<h2 class="text-2xl font-bold text-slate-800 mb-2">${escapeHtml(m.label)}</h2>
+      <div class="bg-white rounded-xl border border-slate-200 p-10 text-center text-slate-500">Create a plan first in the <b>Plan Hub</b>.<br><button onclick="go('plans')" class="mt-4 px-4 py-2 text-sm bg-acacia-600 hover:bg-acacia-700 text-white rounded-lg font-semibold">Go to Plan Hub</button></div>`;
+    return;
+  }
+  const rows = (store[m.id]||[]).map((r,i)=>({r,i})).filter(x => x.r && x.r[m.link]===plan.title);
+  const cols = COLS[m.id];
+  let extra = '';
+  if(m.id==='revenue'){
+    const got = collected(plan.title), tgt = parseFloat(plan.targetAmount)||0, pct = tgt ? Math.min(100,Math.round(got/tgt*100)) : 0;
+    extra = `<div class="bg-white rounded-xl border border-slate-200 p-4 mb-4 grid md:grid-cols-3 gap-4">
+      <div><div class="text-[11px] uppercase font-semibold text-slate-400">Collected</div><div class="text-lg font-bold">${fmtKES(got)}</div></div>
+      <div><div class="text-[11px] uppercase font-semibold text-slate-400">Target</div><div class="text-lg font-bold">${tgt?fmtKES(tgt):'—'}</div></div>
+      <div><div class="text-[11px] uppercase font-semibold text-slate-400">Achieved</div><div class="text-lg font-bold">${tgt?pct+'%':'—'}</div><div class="h-2 bg-slate-100 rounded-full mt-1 overflow-hidden"><div class="h-2 bg-emerald-500" style="width:${pct}%"></div></div></div></div>`;
+  }
+  if(m.id==='expenses'){
+    const tot = rows.reduce((s,x)=>s+(parseFloat(x.r.amount)||0),0);
+    extra = `<div class="bg-amber-50 border border-amber-200 text-amber-800 text-xs rounded-lg px-3 py-2 mb-4">Plan expenses are recorded as Operational Costs in Acacia Books so they post to your bank and ledger. They show here for this plan. Total: <b>${fmtKES(tot)}</b></div>`;
+  }
+  view.innerHTML = `
+    <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+      <div><h2 class="text-2xl font-bold text-slate-800">${escapeHtml(m.label)}</h2>
+        <p class="text-sm text-slate-500">${rows.length} record${rows.length===1?'':'s'} for this plan · live from Acacia Books</p></div>
+      <div class="flex gap-2 items-center">
+        <select onchange="setPlan(this.value)" class="h-9 px-3 text-sm border border-slate-200 rounded-lg bg-white max-w-[260px]">
+          ${ps.map(p=>`<option value="${escapeHtml(p.title)}" ${p.title===plan.title?'selected':''}>${escapeHtml(p.title)}</option>`).join('')}</select>
+        <button onclick="exportCsv()" class="px-3 py-2 text-sm border border-slate-200 rounded-lg hover:bg-slate-50">Export CSV</button>
+        ${m.readonly?'':`<button onclick="openForm()" class="px-4 py-2 text-sm bg-acacia-600 hover:bg-acacia-700 text-white rounded-lg font-semibold">+ New</button>`}
+      </div>
+    </div>
+    <div class="text-xs text-slate-500 mb-3">${escapeHtml(plan.startDate||'?')} → ${escapeHtml(plan.endDate||'?')} · ${statusBadge(plan.status)} · progress ${parseFloat(plan.progress)||0}%${plan.owner?' · owner '+escapeHtml(plan.owner):''}</div>
+    ${extra}
+    <div class="bg-white rounded-xl border border-slate-200 overflow-hidden"><div class="overflow-x-auto">
+      <table class="w-full text-sm"><thead class="bg-slate-50 text-left text-xs uppercase text-slate-500"><tr>
+        ${cols.map(c=>`<th class="px-3 py-2 ${c[0]==='amount'?'text-right':''}">${escapeHtml(c[1])}</th>`).join('')}${m.readonly?'':'<th class="px-3 py-2"></th>'}</tr></thead>
+        <tbody>${rows.length ? rows.map(({r,i}) => `<tr class="border-t border-slate-100 hover:bg-slate-50 align-top">
+          ${cols.map(c=>`<td class="px-3 py-2 max-w-xs ${c[0]==='amount'?'text-right':''}">${c[0]==='status'?statusBadge(r[c[0]]):cell(c[0],r[c[0]],r)}</td>`).join('')}
+          ${m.readonly?'':`<td class="px-3 py-2 text-right whitespace-nowrap">${m.id==='revenue'?'':`<button onclick="openForm(${i})" class="text-acacia-700 hover:underline text-xs mr-2">Edit</button>`}<button onclick="delRow(${i})" class="text-red-500 hover:underline text-xs">${m.id==='revenue'?'Unlink':'Delete'}</button></td>`}</tr>`).join('')
+          : `<tr><td colspan="${cols.length+1}" class="text-center text-slate-400 py-10">${m.readonly?'No expenses logged against this plan yet.':'No records for this plan yet. Click <b>+ New</b> to add one.'}</td></tr>`}</tbody></table></div></div>`;
 }
 
-/* Entry creation form control functions */
-function addRow(){
-  const m = MODULES.find(x=>x.id===active);
-  const fields = MODULE_FIELDS[m.id] || [];
-  if(!fields.length) return;
-
-  entryModalTitle.textContent = `Add New ${m.label.slice(-1) === 's' ? m.label.slice(0, -1) : m.label}`;
-  
-  // Clear layout fields and rebuild structured form inputs 
-  entryModalFields.innerHTML = fields.map(field => `
-    <div>
-      <label class="block text-xs font-semibold text-slate-600 mb-1">${escapeHtml(field)}</label>
-      <input type="text" data-field="${escapeHtml(field)}" required class="w-full h-10 px-3 rounded-lg border border-slate-300 outline-none text-sm focus:border-acacia-500 focus:ring-1 focus:ring-acacia-500" placeholder="Enter ${field.toLowerCase()}..."/>
-    </div>
-  `).join('');
-
+/* ---- Add / edit form (modal) ---- */
+function openForm(i){
+  const m = MODULES.find(x => x.id===active); if(m.readonly) return;
+  editIdx = (i===undefined) ? null : i;
+  const old = editIdx!==null ? (store[m.id]||[])[editIdx] : null;
+  const names = empNames();
+  entryModalTitle.textContent = (old ? 'Edit ' : 'Add ') + (m.id==='plans' ? 'Plan' : m.label);
+  const cls = 'w-full px-3 rounded-lg border border-slate-300 outline-none text-sm focus:border-acacia-500 focus:ring-1 focus:ring-acacia-500';
+  entryModalFields.innerHTML = FIELDS[m.id].map(f => {
+    const v = old ? old[f.k] : (f.k==='date' ? todayStr() : (f.k==='status' ? 'Not Started' : (f.k==='priority' ? 'Medium' : '')));
+    let input;
+    if(f.t==='select'){
+      let opts = f.o==='employees' ? ['', ...names] : f.o;
+      if(v && !opts.includes(v)) opts = [...opts, v];
+      input = `<select data-field="${f.k}" class="${cls} h-10 bg-white">${opts.map(o=>`<option value="${escapeHtml(o)}" ${o===v?'selected':''}>${o===''?'-- Select --':escapeHtml(o)}</option>`).join('')}</select>`;
+    } else if(f.t==='multi'){
+      const sel = Array.isArray(v) ? v : [];
+      input = `<select data-field="${f.k}" multiple size="4" class="${cls} bg-white py-1">${names.map(o=>`<option value="${escapeHtml(o)}" ${sel.includes(o)?'selected':''}>${escapeHtml(o)}</option>`).join('')}</select>${names.length?'<p class="text-[11px] text-slate-400 mt-1">Hold Ctrl / Cmd to pick several.</p>':'<p class="text-[11px] text-slate-400 mt-1">Add employees in Acacia Books to pick a team.</p>'}`;
+    } else if(f.t==='textarea'){
+      input = `<textarea data-field="${f.k}" rows="3" class="${cls} py-2">${escapeHtml(v||'')}</textarea>`;
+    } else {
+      const lock = (m.id==='plans' && f.k==='title' && old) ? 'readonly title="The title links this plan\'s records, so it cannot be changed."' : '';
+      input = `<input data-field="${f.k}" type="${f.t||'text'}" ${f.t==='number'?'step="any" min="0"'+(f.k==='progress'?' max="100"':''):''} ${f.req?'required':''} ${lock} value="${escapeHtml(v==null?'':v)}" class="${cls} h-10 ${lock?'bg-slate-50':''}"/>`;
+    }
+    return `<div><label class="block text-xs font-semibold text-slate-600 mb-1">${escapeHtml(f.l)}</label>${input}</div>`;
+  }).join('');
   entryModal.classList.remove('hidden');
 }
-
-function closeEntryModal(){
-  entryModal.classList.add('hidden');
-  entryModalForm.reset();
-}
+function closeEntryModal(){ entryModal.classList.add('hidden'); entryModalForm.reset(); editIdx = null; }
 
 async function saveNewRecord(e){
   e.preventDefault();
-  const m = MODULES.find(x=>x.id===active);
-  const rows = store[m.id] || [];
-  
-  const rec = {};
-  const inputs = entryModalFields.querySelectorAll('input[data-field]');
-  inputs.forEach(input => {
-    const key = input.getAttribute('data-field');
-    rec[key] = input.value.trim();
+  const m = MODULES.find(x => x.id===active), fields = FIELDS[m.id], rec = {};
+  fields.forEach(f => {
+    const el = entryModalFields.querySelector(`[data-field="${f.k}"]`); if(!el) return;
+    if(f.t==='multi') rec[f.k] = [...el.selectedOptions].map(o => o.value);
+    else if(f.t==='number') rec[f.k] = el.value==='' ? 0 : (parseFloat(el.value)||0);
+    else rec[f.k] = el.value.trim();
   });
+  const rows = [...(store[m.id]||[])], old = editIdx!==null ? rows[editIdx] : null;
+  let plan = null, touchPlans = false;
 
-  store[m.id] = [...rows, rec];
+  if(m.id==='plans'){
+    if(!rec.title) return alert('Please enter a plan title.');
+    if(!old && plansList().some(p => p.title===rec.title)) return alert('A plan with this title already exists.');
+    if(old) rows[editIdx] = Object.assign({}, old, rec, { title: old.title });
+    else rows.push(Object.assign({ progress:0, status:'Not Started', owner:'', team:[], dateCreated:nowStr() }, rec));
+    if(!old) selPlan = rec.title;
+  } else {
+    plan = curPlan(); if(!plan) return alert('Create/select a plan first.');
+    rec[m.link] = plan.title;
+    if(m.id==='ownership'){ rec.date = rec.date || todayStr(); Object.assign(plan,{owner:rec.owner,team:rec.team,status:rec.status}); touchPlans = true; }
+    if(m.id==='progress'){ rec.progress = Math.max(0,Math.min(100,rec.progress)); rec.date = nowStr(); Object.assign(plan,{progress:rec.progress,status:rec.status}); touchPlans = true; }
+    if(m.id==='revisions'){ rec.date = nowStr(); if(/^Extend/.test(rec.action) && rec.newEndDate){ plan.endDate = rec.newEndDate; touchPlans = true; } }
+    if(m.id==='actions'){ rec.date = old ? old.date : nowStr(); }
+    if(m.id==='revenue'){
+      if(rec.amount<=0) return alert('Enter an amount greater than zero.');
+      Object.assign(rec,{ id:Date.now()+Math.random(), source:'manual', invoiceNumber:'', invDate:'', date:nowStr() });
+    }
+    if(old) rows[editIdx] = Object.assign({}, old, rec); else rows.push(rec);
+  }
+  store[m.id] = rows;
+  if(m.id==='revenue') touchPlans = syncRevenueProgress(plan) || touchPlans;
   closeEntryModal();
 
-  if(await pushOne(m)) {
-    renderView();
-  } else {
-    await pullOne(m).then(renderView);
-  }
+  let ok = await pushOne(m);
+  if(ok && touchPlans) ok = await pushOne(MODULES[0]);
+  if(ok) renderView(); else await Promise.all([pullOne(m), pullOne(MODULES[0])]).then(renderView);
+}
+
+/* Books' rule: when a target amount is set, progress follows revenue collected */
+function syncRevenueProgress(plan){
+  if(!plan) return false;
+  const got = collected(plan.title), tgt = parseFloat(plan.targetAmount)||0;
+  if(tgt<=0) return false;
+  plan.progress = Math.min(100, Math.round(got/tgt*100));
+  plan.status = plan.progress>=100 ? 'Completed' : plan.progress>0 ? 'In Progress' : plan.status;
+  return true;
 }
 
 async function delRow(i){
-  if(!confirm('Delete this record from Acacia ERP?')) return;
-  const m = MODULES.find(x=>x.id===active);
+  const m = MODULES.find(x => x.id===active); if(m.readonly) return;
+  const msg = m.id==='plans' ? 'Delete this plan? Records already linked to it (progress, revenue, etc.) are kept in Acacia Books.' : 'Delete this record from Acacia Books?';
+  if(!confirm(msg)) return;
   store[m.id].splice(i,1);
-  if(await pushOne(m)) renderView(); else await pullOne(m).then(renderView);
+  let touch = false;
+  if(m.id==='revenue') touch = syncRevenueProgress(curPlan());
+  let ok = await pushOne(m);
+  if(ok && touch) ok = await pushOne(MODULES[0]);
+  if(ok) renderView(); else await Promise.all([pullOne(m), pullOne(MODULES[0])]).then(renderView);
 }
 
 function exportCsv(){
-  const m=MODULES.find(x=>x.id===active); const rows=store[m.id]||[]; const cols=collectColumns(rows);
-  const csv=[cols.join(','),...rows.map(r=>cols.map(c=>JSON.stringify(cellText(r?.[c]))).join(','))].join('\n');
-  const a=document.createElement('a');a.href='data:text/csv,'+encodeURIComponent(csv);a.download=m.key+'.csv';a.click();
+  const m = MODULES.find(x => x.id===active);
+  let head, lines;
+  if(m.id==='plans'){
+    head = FIELDS.plans.map(f=>f.k).concat(['progress','status','owner']);
+    lines = plansList().map(p => head.map(c => JSON.stringify(cellText(p[c]))).join(','));
+  } else {
+    const plan = curPlan(); if(!plan) return;
+    const cols = COLS[m.id].map(c=>c[0]);
+    head = cols;
+    lines = (store[m.id]||[]).filter(r => r && r[m.link]===plan.title).map(r => cols.map(c => JSON.stringify(cellText(r[c]))).join(','));
+  }
+  const a = document.createElement('a'); a.href = 'data:text/csv,' + encodeURIComponent([head.join(','), ...lines].join('\n')); a.download = m.key + '.csv'; a.click();
 }
 
 /* ============ Acacia Mail bridge ============ */
