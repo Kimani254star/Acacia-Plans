@@ -444,6 +444,7 @@ function setSync(status, tone){
     ({ok:'bg-emerald-500',busy:'bg-amber-400 animate-pulse',err:'bg-red-500',idle:'bg-slate-300'}[tone]||'bg-slate-300');
 }
 
+let pullErr=null;
 async function pullOne(m){
   try {
     const r = await AcaciaCloud.req('company_state?select=value&company_id=eq.' + enc(currentCompanyId()) + '&key=eq.' + enc(m.key));
@@ -453,14 +454,20 @@ async function pullOne(m){
     store[m.id] = Array.isArray(v) ? v : [];
   } catch(e) {
     console.warn(`Failed pulling key ${m.key}:`, e);
+    pullErr=(e&&e.message)||String(e);
     store[m.id] = [];
   }
 }
 async function pullAll(){
   setSync('syncing…','busy');
   try{
+    pullErr=null;
     await Promise.all(MODULES.map(pullOne));
-    setSync('synced · '+(currentUser()?.companyName||'workspace'),'ok');
+    const anyData = MODULES.some(m=>Array.isArray(store[m.id]) && store[m.id].length);
+    if(pullErr){ setSync('sync error · '+String(pullErr).slice(0,70),'err'); }
+    else if(!anyData){ setSync('connected · no Books data for company '+currentCompanyId(),'idle'); }
+    else { setSync('synced · '+(currentUser()?.companyName||'workspace'),'ok'); }
+    try{ syncStatus.title = 'Company ID: '+currentCompanyId()+(pullErr?' · '+pullErr:''); }catch(_){}
     renderView();
   }catch(e){ console.warn(e); setSync('sync error','err'); }
 }
