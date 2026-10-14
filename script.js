@@ -94,7 +94,7 @@ function hpShowLogin(tab){
   var rawSet = Storage.prototype.setItem;
   var low = function (v) { return String(v == null ? '' : v).trim().toLowerCase(); };
   var enc = encodeURIComponent;
-  var isCloudId = function (id) { return /^ACC-\d+$/i.test(String(id || '')); };
+  var isCloudId = function (id) { return /^(ACC-\d+|company_[A-Za-z0-9_]+)$/i.test(String(id || '')); };
   function err(code, msg) { var e = new Error(msg || code); e.code = code; return e; }
 
   async function req(path, opt) {
@@ -130,6 +130,12 @@ function hpShowLogin(tab){
   /* deleted / suspended companies are blocked (fails open if the cloud can't be reached) */
   async function gate(cid, login) {
     try { if ((await rpc('acx_account_state', { p_company: low(cid), p_login: low(login) })) === 'deleted') return 'This account was removed by Acacia support.'; } catch (e) {}
+    try {
+      var acc = await rpc('acx_app_access', { p_company: String(cid || ''), p_login: low(login), p_app: String((cfg && cfg.app) || '').toLowerCase() });
+      if (acc === 'not_paid') return 'Your company has not paid for this app yet. Ask your admin to add it to your plan in Acacia Books (Settings > Subscription), then sign in again.';
+      if (acc === 'expired') return 'Your company subscription has ended. Renew it in Acacia Books to open this app again.';
+      if (acc === 'no_access') return 'Your admin has not given you access to this app. Ask them to tick it under User Management > App access in Acacia Books.';
+    } catch (e) {}
     try {
       var r = await req('acacia_company_status?select=status&company_id=eq.' + enc(cid));
       if (r.ok) { var j = await r.json(); var s = j[0] && j[0].status; if (s === 'pending') return 'Your company is waiting for approval by Acacia support. You will be able to sign in as soon as it is approved.'; if (s && s !== 'active') return 'Your company account is "' + s + '". Please contact Acacia support.'; }
@@ -649,7 +655,12 @@ function closeEntryModal(){ entryModal.classList.add('hidden'); entryModalForm.r
 
 async function saveNewRecord(e){
   e.preventDefault();
-  const m = MODULES.find(x => x.id===active), fields = FIELDS[m.id], rec = {};
+  const m0 = MODULES.find(x => x.id===active);
+  /* fetch the latest from Books first so edits made there are not overwritten */
+  const keep = editIdx!==null ? JSON.stringify((store[m0.id]||[])[editIdx]) : null;
+  await Promise.all([pullOne(m0), m0.id!=='plans' ? pullOne(MODULES[0]) : null]);
+  if(keep!==null){ const j=(store[m0.id]||[]).findIndex(r=>JSON.stringify(r)===keep); if(j<0){ alert('This record was changed in Acacia Books meanwhile. Please reopen it and try again.'); closeEntryModal(); renderView(); return; } editIdx=j; }
+  const m = m0, fields = FIELDS[m.id], rec = {};
   fields.forEach(f => {
     const el = entryModalFields.querySelector(`[data-field="${f.k}"]`); if(!el) return;
     if(f.t==='multi') rec[f.k] = [...el.selectedOptions].map(o => o.value);
@@ -794,5 +805,10 @@ function boot(){
   document.getElementById('rightSidebar')?.classList.remove('hidden');
   
   renderNav(); renderView(); pullAll();
+  /* keep in step with Books: refresh when you come back to the tab and every 60s (skipped while a form is open) */
+  const idle = () => !document.hidden && entryModal.classList.contains('hidden');
+  window.addEventListener('focus', () => { if(idle()) pullAll(); });
+  document.addEventListener('visibilitychange', () => { if(idle()) pullAll(); });
+  setInterval(() => { if(idle()) pullAll(); }, 60000);
 }
 boot();
