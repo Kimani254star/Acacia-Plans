@@ -587,7 +587,7 @@ function filterPlans(){
       <td class="px-3 py-2 text-right">${cell('targetAmount',p.targetAmount)}</td><td class="px-3 py-2 text-right">${cell('amount',collected(p.title))}</td>
       <td class="px-3 py-2 min-w-[110px]"><div class="h-2 bg-slate-100 rounded-full overflow-hidden"><div class="h-2 bg-acacia-600" style="width:${pct}%"></div></div><div class="text-[11px] text-slate-500 mt-1">${pct}%</div></td>
       <td class="px-3 py-2">${statusBadge(p.status)}</td><td class="px-3 py-2">${escapeHtml(p.owner||'')}</td>
-      <td class="px-3 py-2 text-right whitespace-nowrap"><button onclick="openPlan('${i}')" class="text-acacia-700 hover:underline text-xs mr-2">Open</button><button onclick="openForm(${i})" class="text-acacia-700 hover:underline text-xs mr-2">Edit</button><button onclick="delRow(${i})" class="text-red-500 hover:underline text-xs">Delete</button></td></tr>`;
+      <td class="px-3 py-2 acx-cell">${ACX_ACT({view:`openPlan('${i}')`, edit:`openForm(${i})`, clone:`cloneRow(${i})`, del:`delRow(${i})`, title:'Plan — '+(p.title||'')})}</td></tr>`;
   }).join('') : `<tr><td colspan="11" class="text-center text-slate-400 py-10">No plans yet. Click <b>+ New Plan</b> to create your first plan, or create one in Acacia Books.</td></tr>`;
 }
 function openPlan(i){ const p = plansList()[i]; if(p){ selPlan = p.title; go('ownership'); } }
@@ -629,10 +629,10 @@ function renderLinked(m){
     ${extra}
     <div class="bg-white rounded-xl border border-slate-200 overflow-hidden"><div class="overflow-x-auto">
       <table class="w-full text-sm"><thead class="bg-slate-50 text-left text-xs uppercase text-slate-500"><tr>
-        ${cols.map(c=>`<th class="px-3 py-2 ${c[0]==='amount'?'text-right':''}">${escapeHtml(c[1])}</th>`).join('')}${m.readonly?'':'<th class="px-3 py-2"></th>'}</tr></thead>
+        ${cols.map(c=>`<th class="px-3 py-2 ${c[0]==='amount'?'text-right':''}">${escapeHtml(c[1])}</th>`).join('')}<th class="px-3 py-2 acx-cell">Actions</th></tr></thead>
         <tbody>${rows.length ? rows.map(({r,i}) => `<tr class="border-t border-slate-100 hover:bg-slate-50 align-top">
           ${cols.map(c=>`<td class="px-3 py-2 max-w-xs ${c[0]==='amount'?'text-right':''}">${c[0]==='status'?statusBadge(r[c[0]]):cell(c[0],r[c[0]],r)}</td>`).join('')}
-          ${m.readonly?'':`<td class="px-3 py-2 text-right whitespace-nowrap">${m.id==='revenue'?'':`<button onclick="openForm(${i})" class="text-acacia-700 hover:underline text-xs mr-2">Edit</button>`}<button onclick="delRow(${i})" class="text-red-500 hover:underline text-xs">${m.id==='revenue'?'Unlink':'Delete'}</button></td>`}</tr>`).join('')
+          <td class="px-3 py-2 acx-cell">${m.readonly||m.id==='revenue' ? ACX_ACT({del: m.readonly?'':`delRow(${i})`}) : ACX_ACT({edit:`openForm(${i})`, clone:`cloneRow(${i})`, del:`delRow(${i})`})}</td></tr>`).join('')
           : `<tr><td colspan="${cols.length+1}" class="text-center text-slate-400 py-10">${m.readonly?'No expenses logged against this plan yet.':'No records for this plan yet. Click <b>+ New</b> to add one.'}</td></tr>`}</tbody></table></div></div>`;
 }
 
@@ -716,6 +716,19 @@ function syncRevenueProgress(plan){
   return true;
 }
 
+/* Clone — same as Books: copy the record, plans get a unique "(copy)" title */
+async function cloneRow(i){
+  const m = MODULES.find(x => x.id===active); if(!m || m.readonly || m.id==='revenue') return;
+  const src = (store[m.id]||[])[i]; if(!src) return;
+  const copy = JSON.parse(JSON.stringify(src));
+  if(m.id==='plans'){
+    let t = (src.title||'Plan')+' (copy)', n = 2;
+    while(plansList().some(p => p.title===t)) t = (src.title||'Plan')+' (copy '+(n++)+')';
+    Object.assign(copy,{ title:t, progress:0, status:'Not Started', dateCreated:nowStr() });
+  } else { copy.date = nowStr(); delete copy.id; }
+  store[m.id] = [...(store[m.id]||[]), copy];
+  if(await pushOne(m)) renderView(); else await pullOne(m).then(renderView);
+}
 async function delRow(i){
   const m = MODULES.find(x => x.id===active); if(m.readonly) return;
   const msg = m.id==='plans' ? 'Delete this plan? Records already linked to it (progress, revenue, etc.) are kept in Acacia Books.' : 'Delete this record from Acacia Books?';
