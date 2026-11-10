@@ -1,24 +1,40 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Acacia Projects</title>
-<script>(function(){try{var t=localStorage.getItem('acacia_theme'); if(t==='dark') document.documentElement.setAttribute('data-theme','dark');}catch(e){}})();</script>
+<head><script src="acacia-theme.js"></script>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Acacia Plans — Plan Hub, Progress & Revenue</title>
+<meta name="description" content="Acacia Plans Hub — create plans, assign ownership, track progress, expenses, revisions, action items and revenue (live-synced with Acacia Books)." />
+<script>
+  // Shared Supabase project (same as app 1701)
+  window.__SUPA_URL__ = 'https://xglsampckermarjpczdf.supabase.co';
+  window.__SUPA_KEY__ = 'sb_publishable_x-dPR7pzhvJgag9soW0I8w_yfKTmi6A';
+</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = { theme: { extend: {
+    colors: { acacia: {50:'#eef4f1',100:'#dbe8e2',200:'#b9d3c8',300:'#8fb7a6',400:'#5f9983',500:'#3d7a64',600:'#295A4C',700:'#1E4238',800:'#16302A',900:'#102620'}},
+    fontFamily: { sans: ['Inter','system-ui','sans-serif'] }
+  }}}
+</script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
-<script>window.ACACIA_APPEARANCE={sidebar:'.sidebar',items:'.sidebar .nav-item'};</script>
+<script>window.ACACIA_APPEARANCE={sidebar:'aside.w-60',items:'aside.w-60 .nav-btn'};</script>
 <script src="acacia-appearance.js"></script>
-<style>#homePage>:not(#acxLanding){display:none!important}#acxLanding{position:fixed;inset:0;width:100%;height:100%;border:0;z-index:2147483000;background:#fff}</style></head>
-<body>
-<div id="homePage"><iframe id="acxLanding" src="https://acacia-books.vercel.app/landing.html?app=projects" title="Acacia Enterprise"></iframe><script>window.__SUPA_URL__=window.__SUPA_URL__||"https://xglsampckermarjpczdf.supabase.co";window.__SUPA_KEY__=window.__SUPA_KEY__||"sb_publishable_x-dPR7pzhvJgag9soW0I8w_yfKTmi6A";window.openLogin=function(){hpShowLogin("login")};window.acaciaHideLanding=window.openLogin;window.showRegisterForm=function(){hpShowLogin("register")};window.choosePlan=function(){window.showRegisterForm()};window.addEventListener("message",function(e){if(e.origin!=="https://acacia-books.vercel.app"&&e.origin!==location.origin)return;var m=e.data&&e.data.acx;if(m==="login")window.openLogin();if(m==="register")window.showRegisterForm()});</script>
+<style id="acxRsbLabels">body:has(#rightSidebar:not(.hidden)) #acxhFab,body:has(#rightSidebar:not(.hidden)) #acxhPop,body:has(#rightSidebar:not(.hidden)) #acxsRoot{right:11rem!important}</style><style>#homePage>:not(#acxLanding){display:none!important}#acxLanding{position:fixed;inset:0;width:100%;height:100%;border:0;z-index:2147483000;background:#fff}</style></head>
+<body class="text-slate-800">
+
+<!-- Authentication Screen -->
+<div id="homePage"><iframe id="acxLanding" src="https://acacia-books.vercel.app/landing.html?app=plans" title="Acacia Enterprise"></iframe><script>window.__SUPA_URL__=window.__SUPA_URL__||"https://xglsampckermarjpczdf.supabase.co";window.__SUPA_KEY__=window.__SUPA_KEY__||"sb_publishable_x-dPR7pzhvJgag9soW0I8w_yfKTmi6A";window.openLogin=function(){hpShowLogin("login")};window.acaciaHideLanding=window.openLogin;window.showRegisterForm=function(){hpShowLogin("register")};window.choosePlan=function(){window.showRegisterForm()};window.addEventListener("message",function(e){if(e.origin!=="https://acacia-books.vercel.app"&&e.origin!==location.origin)return;var m=e.data&&e.data.acx;if(m==="login")window.openLogin();if(m==="register")window.showRegisterForm()});</script>
 
 <header class="hp-header">
 <a href="#top" class="hp-logo" data-scroll>
-<div class="hp-logo-mark"><i class="fa-solid fa-diagram-project"></i></div>
+<div class="hp-logo-mark"><i class="fa-solid fa-file-invoice-dollar"></i></div>
 <div>
-<h2>Acacia Projects</h2>
-<span>Projects &amp; tasks</span>
+<h2>Acacia Plans</h2>
+<span>Payroll linked to Books</span>
 </div>
 </a>
 <nav class="hp-nav" id="hpNav" aria-label="Main">
@@ -39,10 +55,10 @@
       <div class="hp-slide" style="background-image:url('https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=1920&q=80');"></div>
     </div>
 <div class="hp-left">
-<div class="hp-badge"><i class="fa-solid fa-diagram-project"></i> Plan projects, assign tasks and track time and budgets in one place.</div>
-<h1>Keep every project on track.</h1>
-<p>Acacia Projects helps your team plan projects, break them into tasks and milestones, track time and budgets, and see what needs attention.</p>
-<p>Log in to your account, or create one for your company and start your first project.</p>
+<div class="hp-badge"><i class="fa-solid fa-file-invoice-dollar"></i> Employees, earnings, payslips and statutory deductions, linked to Acacia Books.</div>
+<h1>Payroll that works from your Acacia Books data.</h1>
+<p>Acacia Plans lets your company work with employees, earnings, attendance, payslips and statutory deductions, using the same records as your Acacia Books company.</p>
+<p>Log in with your company, or create an account and start working with your payroll.</p>
 <div class="hp-hero-btns">
 <a href="#register" class="hp-primary" onclick="hpShowLogin('register');return false;">Create your account</a>
 <a href="#login" class="hp-secondary" onclick="hpShowLogin('login');return false;">Log in</a>
@@ -51,9 +67,9 @@
 <div class="hp-right">
 <div class="hp-preview">
 <h2>What's inside</h2>
-<div class="hp-item"><span>Projects</span><strong>Plans &amp; progress</strong></div><div class="hp-item"><span>Tasks</span><strong>Assign &amp; track</strong></div><div class="hp-item"><span>Time</span><strong>Time tracking</strong></div><div class="hp-item"><span>Budgets</span><strong>Budget vs actual</strong></div>
+<div class="hp-item"><span>Employees</span><strong>From your company records</strong></div><div class="hp-item"><span>Earnings</span><strong>Gross pay &amp; attendance</strong></div><div class="hp-item"><span>Payslips</span><strong>Per employee</strong></div><div class="hp-item"><span>Statutory</span><strong>Deductions &amp; reports</strong></div>
 </div>
-<div class="hp-float hp-float1"><i class="fa-solid fa-list-check"></i> Tasks</div><div class="hp-float hp-float2"><i class="fa-solid fa-flag-checkered"></i> Milestones</div>
+<div class="hp-float hp-float1"><i class="fa-solid fa-file-invoice-dollar"></i> Payslips</div><div class="hp-float hp-float2"><i class="fa-solid fa-link"></i> Linked to Books</div>
 </div>
 </section>
 
@@ -61,20 +77,20 @@
 <div class="hp-two">
 <div class="hp-text">
 <div class="hp-title left">
-<span>About Acacia Projects</span>
-<h2>One place for the plan, the people and the progress.</h2>
+<span>About Acacia Plans</span>
+<h2>Payroll and your books, working from the same records.</h2>
 </div>
-<p>Acacia Projects keeps your projects, tasks, milestones and team together, so everyone can see what is planned and what is done.</p><p>Log time against work, keep an eye on budgets, and record issues as they come up, so problems are visible early.</p><p>A dashboard, a calendar and reports show where each project stands.</p>
+<p>Acacia Plans works with the employee and payroll records in your Acacia Books company, so you do not have to enter the same details twice.</p><p>Look after employees, earnings, gross pay and attendance, and produce payslips from them.</p><p>Statutory deductions and payroll reports keep the numbers in order, and integrations connect to the rest of Acacia.</p>
 <div class="hp-actions-row">
 <a href="#register" class="hp-btn" onclick="hpShowLogin('register');return false;">Create your account <i class="fa-solid fa-arrow-right"></i></a>
 <button type="button" class="hp-btn ghost" onclick="hpShowLogin('login')">Log in</button>
 </div>
 </div>
 <div>
-<div class="hp-stats"><div class="hp-stat"><h4>Planned</h4><p>Projects, tasks and milestones</p></div><div class="hp-stat"><h4>Shared</h4><p>Your team on the same plan</p></div><div class="hp-stat"><h4>Tracked</h4><p>Time entries and budgets</p></div><div class="hp-stat"><h4>Visible</h4><p>Dashboard, calendar and reports</p></div></div>
+<div class="hp-stats"><div class="hp-stat"><h4>Linked</h4><p>Uses your Acacia Books company records</p></div><div class="hp-stat"><h4>Complete</h4><p>Employees, earnings, gross pay, attendance</p></div><div class="hp-stat"><h4>Itemised</h4><p>Payslips for each employee</p></div><div class="hp-stat"><h4>Reported</h4><p>Statutory deductions and payroll reports</p></div></div>
 <div class="hp-quote">
 <i class="fa-solid fa-quote-left"></i>
-<p>Plan projects, assign tasks and track time and budgets in one place.</p>
+<p>Payroll that works from the same records as your Acacia Books company.</p>
 </div>
 </div>
 </div>
@@ -83,19 +99,19 @@
 <section class="hp-section-alt hp-page" id="hp-features" data-page="features">
 <div class="hp-title">
 <span>What you get</span>
-<h2>Everything you need to deliver projects</h2>
-<p>Six areas that keep work organised from plan to finish.</p>
+<h2>Everything you need for payroll</h2>
+<p>Six areas from employee record to report.</p>
 </div>
-<div class="hp-grid3"><div class="hp-card"><div class="hp-icon"><i class="fa-solid fa-folder-open"></i></div><h3>Projects</h3><p>Create a project, set it up and see its progress at a glance.</p></div><div class="hp-card"><div class="hp-icon"><i class="fa-solid fa-list-check"></i></div><h3>Tasks</h3><p>Break projects into tasks, assign them to people and follow them to completion.</p></div><div class="hp-card"><div class="hp-icon"><i class="fa-solid fa-flag-checkered"></i></div><h3>Milestones &amp; calendar</h3><p>Mark the key dates in a project and see them on a calendar.</p></div><div class="hp-card"><div class="hp-icon"><i class="fa-solid fa-clock"></i></div><h3>Team &amp; time tracking</h3><p>Keep your team list and log the time spent on work.</p></div><div class="hp-card"><div class="hp-icon"><i class="fa-solid fa-wallet"></i></div><h3>Budgets</h3><p>Set budgets for your projects and keep track of spending against them.</p></div><div class="hp-card"><div class="hp-icon"><i class="fa-solid fa-file-lines"></i></div><h3>Documents, issues &amp; reports</h3><p>Keep project documents, log issues, and use reports to see how things are going.</p></div></div>
+<div class="hp-grid3"><div class="hp-card"><div class="hp-icon"><i class="fa-solid fa-users"></i></div><h3>Employees</h3><p>See and manage the employees in your company.</p></div><div class="hp-card"><div class="hp-icon"><i class="fa-solid fa-hand-holding-dollar"></i></div><h3>Earnings &amp; gross pay</h3><p>Record earnings and work out gross pay for each employee.</p></div><div class="hp-card"><div class="hp-icon"><i class="fa-solid fa-calendar-check"></i></div><h3>Attendance</h3><p>Keep attendance records that feed into pay.</p></div><div class="hp-card"><div class="hp-icon"><i class="fa-solid fa-file-invoice-dollar"></i></div><h3>Payslips</h3><p>Produce a payslip for each employee.</p></div><div class="hp-card"><div class="hp-icon"><i class="fa-solid fa-landmark"></i></div><h3>Statutory deductions</h3><p>Keep statutory deductions organised for each pay period.</p></div><div class="hp-card"><div class="hp-icon"><i class="fa-solid fa-chart-pie"></i></div><h3>Reports &amp; integrations</h3><p>Use payroll reports, and connect to the rest of Acacia through integrations.</p></div></div>
 </section>
 
 <section class="hp-section hp-page" id="hp-process" data-page="process">
 <div class="hp-title">
 <span>How it works</span>
-<h2>From idea to delivered</h2>
-<p>Three steps, and your project is moving.</p>
+<h2>From records to payslips</h2>
+<p>Three steps, and your payroll is in order.</p>
 </div>
-<div class="hp-steps"><div class="hp-step"><div class="hp-num">1</div><h3>Create your account</h3><p>Enter your company name, your name, your email address and a password. You start with a blank account, ready for your own projects.</p></div><div class="hp-step"><div class="hp-num">2</div><h3>Plan the work</h3><p>Create a project, add tasks and milestones, and bring in your team.</p></div><div class="hp-step"><div class="hp-num">3</div><h3>Track and deliver</h3><p>Log time, watch budgets, record issues, and use the dashboard and reports to stay on top of progress.</p></div></div>
+<div class="hp-steps"><div class="hp-step"><div class="hp-num">1</div><h3>Create your account</h3><p>Enter your company name, your name, your email address and a password to get started.</p></div><div class="hp-step"><div class="hp-num">2</div><h3>Work with your employee data</h3><p>Review your employees, earnings and attendance, which come from your Acacia Books company.</p></div><div class="hp-step"><div class="hp-num">3</div><h3>Produce payslips and reports</h3><p>Generate payslips and use the statutory deductions and payroll reports to review each period.</p></div></div>
 </section>
 
 <section class="hp-section-alt hp-page" id="hp-pricing" data-page="pricing">
@@ -112,11 +128,11 @@
     <div class="hp-tiers6" style="grid-template-columns:repeat(auto-fit,minmax(260px,340px));justify-content:center">
       <div class="hp-tier">
         
-        <h3>Projects</h3>
+        <h3>Plans</h3>
         <div class="hp-tag">Everything included</div>
         <div class="hp-price"><span class="hp-amt" data-month="5000" data-year="50000">KES 5,000</span><small class="hp-per">/mo</small></div>
-        <ul class="hp-feats"><li>Projects, tasks &amp; milestones</li><li>Calendar, team &amp; time tracking</li><li>Budgets, documents &amp; issues</li><li>Dashboard &amp; reports</li><li>Your whole team on one account</li></ul>
-        <a href="#register" class="hp-tier-btn" onclick="hpShowLogin('register');return false;">Choose Projects</a>
+        <ul class="hp-feats"><li>Employees, earnings &amp; attendance</li><li>Payslips &amp; statutory deductions</li><li>Payroll reports &amp; integrations</li><li>Works from your Acacia Books company records</li><li>Your whole team on one account</li></ul>
+        <a href="#register" class="hp-tier-btn" onclick="hpShowLogin('register');return false;">Choose Plans</a>
       </div>
 </div>
   </section>
@@ -127,7 +143,7 @@
 <h2>Frequently asked questions</h2>
 <p>A few quick answers before you sign up.</p>
 </div>
-<div class="hp-faq"><details open><summary>How do I create an account?</summary><p>Choose Create account and enter your company name, your name, your email address and a password of at least 6 characters.</p></details><details><summary>Can I break a project into tasks?</summary><p>Yes. Add tasks to a project, assign them, and follow them until they are done.</p></details><details><summary>Can I track time and budgets?</summary><p>Yes. There is time tracking for your team and a budgets area for your projects.</p></details><details><summary>Is there a calendar?</summary><p>Yes. The calendar shows your project dates and milestones.</p></details><details><summary>Is my data kept per company?</summary><p>Yes. Each company has its own separate data, and everyone in that company sees the same records.</p></details></div>
+<div class="hp-faq"><details open><summary>How do I create an account?</summary><p>Choose Create account and enter your company name, your name, your email address and a password of at least 6 characters.</p></details><details><summary>Where does the data come from?</summary><p>It comes from your Acacia Books company, so employee and payroll records stay in one place.</p></details><details><summary>Can I produce payslips?</summary><p>Yes. Payslips can be produced for each employee.</p></details><details><summary>Does it handle statutory deductions?</summary><p>Yes. There is a Statutory Deductions area and payroll reports.</p></details><details><summary>Is my data kept per company?</summary><p>Yes. Each company has its own separate data, and everyone in that company sees the same records.</p></details></div>
 </section>
 
 <section class="hp-section-alt hp-page" id="hp-contact" data-page="contact">
@@ -135,7 +151,7 @@
 <div class="hp-text">
 <div class="hp-title left">
 <span>Get in touch</span>
-<h2>Questions about Acacia Projects?</h2>
+<h2>Questions about Acacia Plans?</h2>
 </div>
 <p>Send a message and we'll reply by email.</p>
 <div class="hp-contact-list">
@@ -157,7 +173,7 @@
 <section class="hp-cta hp-page" data-page="top">
 <div class="hp-ctabox">
 <div>
-<h2>Ready to get your projects organised?</h2>
+<h2>Ready to put your payroll in order?</h2>
 <p>Create your company account, or log in and pick up where you left off.</p>
 <div class="hp-cta-btns">
 <a href="#register" class="hp-cta-primary" onclick="hpShowLogin('register');return false;">Create your account</a>
@@ -166,7 +182,7 @@
 </div>
 <div class="hp-cta-card">
 <h3>What you get</h3>
-<div class="hp-cta-item"><span>Plan</span><strong>Projects / Tasks / Milestones</strong></div><div class="hp-cta-item"><span>Track</span><strong>Time / Budgets / Issues</strong></div><div class="hp-cta-item"><span>Review</span><strong>Dashboard / Reports</strong></div>
+<div class="hp-cta-item"><span>People</span><strong>Employees / Attendance</strong></div><div class="hp-cta-item"><span>Pay</span><strong>Earnings / Gross pay / Payslips</strong></div><div class="hp-cta-item"><span>Review</span><strong>Statutory deductions / Reports</strong></div>
 </div>
 </div>
 </section>
@@ -174,8 +190,8 @@
 <footer class="hp-footer">
 <div class="hp-footgrid">
 <div class="hp-footlogo">
-<h2>Acacia Projects</h2>
-<p>Plan projects, assign tasks and track time and budgets in one place.</p>
+<h2>Acacia Plans</h2>
+<p>Payroll that works from the same records as your Acacia Books company.</p>
 </div>
 <div class="hp-footcol">
 <h3>Explore</h3>
@@ -201,109 +217,275 @@
 </div>
 </div>
 <div class="hp-bottom">
-<span>&copy; <span id="footerYear"></span> Acacia Projects.</span>
+<span>&copy; <span id="footerYear"></span> Acacia Plans.</span>
 </div>
 </footer>
 </div>
 <!-- ============ END PUBLIC HOME PAGE ============ -->
 
-<div id="authScreen">
-  <div class="auth-wrap">
-    <div class="auth-side">
-      <div>
-        <div class="mark">ACACIA BOOKS</div>
-        <h1>Acacia Projects</h1>
-        <div class="pitch">Plan projects, track tasks, and manage budgets, timelines and teams in one place.</div>
-        <div class="pitch-list">
-          <div>◆ Projects, tasks and milestones</div>
-          <div>◆ Visual timelines and Gantt charts</div>
-          <div>◆ Budgets, time tracking and reports</div>
+<div id="authScreen" class="hidden fixed inset-0 z-40 bg-gradient-to-br from-acacia-800 via-acacia-700 to-acacia-900 flex items-center justify-center p-4">
+  <div class="w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden">
+    <div class="p-6 text-center border-b border-slate-100">
+      <div class="w-14 h-14 mx-auto rounded-xl bg-gradient-to-br from-acacia-500 to-acacia-700 flex items-center justify-center text-white font-bold text-2xl">A</div>
+      <h1 class="mt-3 text-xl font-bold text-slate-800">Acacia Plans</h1>
+      <p class="text-sm text-slate-500">Sign in or create your workspace account.</p>
+    </div>
+    <a class="auth-back" style="padding:14px 20px 0;display:block" onclick="hpShowHome()">&larr; Back to site</a>
+<div class="flex border-b border-slate-100">
+      <button id="tabSignIn" onclick="switchAuthTab('signin')" class="flex-1 py-3 text-sm font-semibold text-acacia-700 border-b-2 border-acacia-600">Sign In</button>
+      <button id="tabSignUp" onclick="switchAuthTab('signup')" class="flex-1 py-3 text-sm font-semibold text-slate-500 border-b-2 border-transparent">Create Account</button>
+    </div>
+    <form id="signinForm" onsubmit="doSignIn(event)" class="p-6 space-y-3">
+      <div><label class="text-xs font-semibold text-slate-600">Company name</label>
+        <input id="siCompany" type="text" required class="w-full mt-1 h-10 px-3 rounded-lg border border-slate-300 outline-none text-sm" placeholder="Exactly as registered (or company ID)"/></div>
+      <div><label class="text-xs font-semibold text-slate-600">Email</label>
+        <input id="siEmail" type="email" required class="w-full mt-1 h-10 px-3 rounded-lg border border-slate-300 outline-none text-sm" placeholder="you@example.com"/></div>
+      <div><label class="text-xs font-semibold text-slate-600">Password</label>
+        <input id="siPass" type="password" required class="w-full mt-1 h-10 px-3 rounded-lg border border-slate-300 outline-none text-sm"/></div>
+      <button type="submit" class="w-full h-10 rounded-lg bg-acacia-600 hover:bg-acacia-700 text-white font-semibold">Sign In</button>
+      <p id="siError" class="text-xs text-red-500 hidden"></p>
+      <p class="text-[11px] text-slate-500 text-center">Use the same <b>Company name</b> and <b>Email</b> you used on Acacia ERP to pull that workspace's data.</p>
+    </form>
+    <form id="signupForm" onsubmit="doSignUp(event)" class="hidden p-6 space-y-3">
+      <div><label class="text-xs font-semibold text-slate-600">Company name</label>
+        <input id="suCompany" required class="w-full mt-1 h-10 px-3 rounded-lg border border-slate-300 outline-none text-sm"/></div>
+      <div class="grid grid-cols-2 gap-3">
+        <div><label class="text-xs font-semibold text-slate-600">First name</label><input id="suFirst" required class="w-full mt-1 h-10 px-3 rounded-lg border border-slate-300 outline-none text-sm"/></div>
+        <div><label class="text-xs font-semibold text-slate-600">Last name</label><input id="suLast" required class="w-full mt-1 h-10 px-3 rounded-lg border border-slate-300 outline-none text-sm"/></div>
+      </div>
+      <div><label class="text-xs font-semibold text-slate-600">Email</label>
+        <input id="suEmail" type="email" required class="w-full mt-1 h-10 px-3 rounded-lg border border-slate-300 outline-none text-sm" placeholder="you@example.com"/></div>
+      <div><label class="text-xs font-semibold text-slate-600">Password</label><input id="suPass" type="password" required minlength="6" class="w-full mt-1 h-10 px-3 rounded-lg border border-slate-300 outline-none text-sm"/></div>
+      <div><label class="text-xs font-semibold text-slate-600">Plan</label>
+        <select id="regPlan" onchange="acxPlanChanged()" class="w-full mt-1 h-10 px-3 rounded-lg border border-slate-300 outline-none text-sm bg-white"><option value="plans_standard" data-price="5000">Plans &mdash; KES 5,000 / month</option></select></div>
+      <div><label class="text-xs font-semibold text-slate-600">Billing</label>
+        <select id="regBilling" onchange="acxPlanChanged()" class="w-full mt-1 h-10 px-3 rounded-lg border border-slate-300 outline-none text-sm bg-white"><option value="monthly">Monthly</option><option value="yearly">Full year (2 months free)</option></select></div>
+      <p id="regPlanNote" class="text-xs text-slate-500"></p>
+      <label class="flex items-start gap-2 text-xs text-slate-500"><input type="checkbox" required class="mt-0.5"/>I agree to the Acacia Terms & Privacy Policy.</label>
+      <button type="submit" class="w-full h-10 rounded-lg bg-acacia-600 hover:bg-acacia-700 text-white font-semibold">Create Account</button>
+      <p id="suError" class="text-xs text-red-500 hidden"></p>
+      <p class="text-[11px] text-slate-500 text-center">Creating an account here also registers it in Acacia ERP for the given company.</p>
+    </form>
+  </div>
+</div>
+
+<!-- Core App Container -->
+<div id="app" class="hidden flex-col h-screen">
+  <header class="flex items-center justify-between px-4 h-14 bg-white border-b border-slate-200 shrink-0">
+    <div class="flex items-center gap-3">
+      
+      <!-- Company Logo Section -->
+      <div class="flex items-center gap-2 pr-3 border-r border-slate-200">
+        <img src="acaciabooks-logo.png" alt="Logo" class="h-8 w-auto object-contain" />
+        <div class="font-bold text-[10px] text-slate-700 tracking-wide uppercase leading-tight">
+          Spear Tech<br>dvlp
         </div>
       </div>
-      <div class="foot">Your data is stored locally in this browser.</div>
+
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-lg bg-gradient-to-br from-acacia-500 to-acacia-700 flex items-center justify-center text-white font-bold">🗂️</div>
+        <div class="leading-tight">
+          <div class="font-bold text-acacia-800">Acacia Plans</div>
+          <div class="text-[10px] uppercase tracking-wider text-slate-400 flex items-center gap-1">Plans Hub · <span id="syncDot" class="inline-block w-2 h-2 rounded-full bg-slate-300"></span> <span id="syncStatus">idle</span></div>
+        </div>
+      </div>
     </div>
-    <div class="auth-form-panel">
-      <a class="auth-back" onclick="hpShowHome()">&larr; Back to site</a>
-      <div class="auth-tabs">
-        <div class="auth-tab active" id="tabLoginBtn" onclick="switchAuthTab('login')">Log In</div>
-        <div class="auth-tab" id="tabRegisterBtn" onclick="switchAuthTab('register')">Create Account</div>
+    <div class="flex items-center gap-2">
+      <button onclick="openMail()" class="text-xs px-3 py-2 rounded-lg border border-slate-200 hover:bg-slate-50">✉️ Compose</button>
+      <button onclick="pullAll()" class="text-xs px-3 py-2 rounded-lg border border-slate-200 hover:bg-slate-50">↻ Sync</button>
+      <a href="https://acacia-books.vercel.app/" target="_blank" rel="noopener" class="text-xs px-3 py-2 rounded-lg border border-slate-200 hover:bg-slate-50">← Back to Acacia</a>
+      <div class="relative">
+        <button onclick="toggleApps()" class="p-2 rounded-lg hover:bg-slate-100"><svg class="w-5 h-5 text-slate-600" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="5" r="1.5"/><circle cx="12" cy="5" r="1.5"/><circle cx="19" cy="5" r="1.5"/><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/><circle cx="5" cy="19" r="1.5"/><circle cx="12" cy="19" r="1.5"/><circle cx="19" cy="19" r="1.5"/></svg></button>
+        <div id="appsMenu" class="hidden absolute right-0 mt-2 w-56 bg-white border border-slate-200 rounded-lg shadow-lg z-50 text-sm">
+          <a href="https://acacia-books.vercel.app/" target="_blank" rel="noopener" class="block px-3 py-2 hover:bg-slate-50">🏠 Acacia ERP (Main)</a>
+          <a href="https://acacia-mail.vercel.app/" target="_blank" rel="noopener" class="block px-3 py-2 hover:bg-slate-50">✉️ Acacia Mail</a>
+          <a href="https://inventory-navy-zeta.vercel.app/" target="_blank" rel="noopener" class="block px-3 py-2 hover:bg-slate-50">📦 Inventory</a>
+          <a href="https://plans-psi-ten.vercel.app/" target="_blank" rel="noopener" class="block px-3 py-2 hover:bg-slate-50 font-semibold text-acacia-700">🗂️ Plans</a>
+          <a href="https://expenses-jade-xi.vercel.app/" target="_blank" rel="noopener" class="block px-3 py-2 hover:bg-slate-50">💰 Expense</a>
+        </div>
       </div>
+      <div id="userAvatar" class="w-9 h-9 rounded-full bg-acacia-700 text-white flex items-center justify-center text-xs font-bold"></div>
+    </div>
+  </header>
 
-      <div id="loginPane">
-        <h2>Welcome back</h2>
-        <div class="sub">Log in to your Acacia Books account.</div>
-        <div class="auth-error" id="loginError"></div>
-        <div class="auth-field"><label>Company name</label><input id="loginCompany" type="text" autocomplete="organization" placeholder="Exactly as registered (or company ID)"></div>
-        <div class="auth-field"><label>Email address</label><input id="loginEmail" type="email" autocomplete="username" placeholder="you@company.co.ke"></div>
-        <div class="auth-field"><label>Password</label><input id="loginPassword" type="password" autocomplete="current-password" placeholder="••••••••"></div>
-        <button class="btn primary auth-submit" onclick="handleLogin()">Log In</button>
-        <div class="auth-switch">Don't have an account? <a onclick="switchAuthTab('register')">Create one</a></div>
-      </div>
+  <div class="flex flex-1 overflow-hidden relative">
+    <aside class="w-60 bg-white border-r border-slate-200 p-3 overflow-y-auto shrink-0">
+      <div class="text-[10px] font-bold uppercase text-slate-400 px-2 mb-2">🗂️ Plans Hub</div>
+      <nav id="navList" class="space-y-1 text-sm"></nav>
+    </aside>
 
-      <div id="registerPane" style="display:none;">
-        <h2>Create your account</h2>
-        <div class="sub">Set up Acacia Books for your company.</div>
-        <div class="auth-error" id="registerError"></div>
-        <div class="auth-field"><label>Company name</label><input id="regCompany" placeholder="e.g. Baraka Traders Ltd"></div>
-        <div class="auth-field"><label>Your name</label><input id="regName" placeholder="e.g. Wanjiru Kariuki"></div>
-        <div class="auth-field"><label>Email address</label><input id="regEmail" type="email" autocomplete="username" placeholder="you@company.co.ke"></div>
-        <div class="auth-field"><label>Password</label><input id="regPassword" type="password" autocomplete="new-password" placeholder="At least 6 characters"></div>
-        <div class="auth-field"><label>Plan</label><select id="regPlan" onchange="acxPlanChanged()"><option value="projects_standard" data-price="5000">Projects &mdash; KES 5,000 / month</option></select></div>
-        <div class="auth-field"><label>Billing</label><select id="regBilling" onchange="acxPlanChanged()"><option value="monthly">Monthly</option><option value="yearly">Full year (2 months free)</option></select></div>
-        <div id="regPlanNote" style="font-size:12px;color:#64748b;margin:-2px 0 10px"></div>
-                <button class="btn primary auth-submit" onclick="handleRegister()">Create Account</button>
-        <div class="auth-switch">Already have an account? <a onclick="switchAuthTab('login')">Log in</a></div>
+    <main class="flex-1 overflow-auto p-6"><div id="view" class="fade-in"></div></main>
+
+    <!-- RIGHT SIDEBAR -->
+    <aside id="rightSidebar" class="hidden w-40 bg-black text-white p-1 overflow-y-auto shrink-0 flex flex-col items-stretch space-y-2">
+      <button onclick="toggleAcaciaNotebook()" title="Acacia Notebook" class="w-full text-left p-1 rounded transition-all duration-300 hover:bg-yellow-400 hover:text-black hover:shadow-lg text-sm">📔 Acacia Notebook</button>
+      <button onclick="toggleWebinarPanel()" title="Webinars" class="w-full text-left p-1 rounded transition-all duration-300 hover:bg-yellow-400 hover:text-black hover:shadow-lg text-sm">🎥 Webinars</button>
+      <button onclick="toggleCommPanel()" title="Team Status" class="w-full text-left p-1 rounded transition-all duration-300 hover:bg-yellow-400 hover:text-black hover:shadow-lg text-sm">💬 Team Status</button>
+      <button onclick="toggleSupportPopup()" title="Support Hub" class="w-full text-left p-1 rounded transition-all duration-300 hover:bg-yellow-400 hover:text-black hover:shadow-lg text-sm">🎧 Support Hub</button>
+      <button onclick="toggleOrgDetails()" title="Organization Details" class="w-full text-left p-1 rounded transition-all duration-300 hover:bg-yellow-400 hover:text-black hover:shadow-lg text-sm">🏢 Organization Details</button>
+      <div class="w-full h-px bg-white/25 my-1"></div>
+      <button onclick="openGDocs()" title="Google Docs" class="w-full text-left p-1 rounded transition-all duration-300 hover:bg-yellow-400 hover:text-black hover:shadow-lg text-sm">📄 Google Docs</button>
+      <button onclick="openGSheets()" title="Google Sheets" class="w-full text-left p-1 rounded transition-all duration-300 hover:bg-yellow-400 hover:text-black hover:shadow-lg text-sm">📊 Google Sheets</button>
+      <button onclick="openGPhotos()" title="Google Photos" class="w-full text-left p-1 rounded transition-all duration-300 hover:bg-yellow-400 hover:text-black hover:shadow-lg text-sm">🖼️ Google Photos</button>
+      <button onclick="openGCalendar()" title="Google Calendar" class="w-full text-left p-1 rounded transition-all duration-300 hover:bg-yellow-400 hover:text-black hover:shadow-lg text-sm">📅 Google Calendar</button>
+    </aside>
+  </div>
+
+  <!-- PANELS & POPUPS -->
+  <div id="acaciaNotebookPanel" class="hidden fixed top-20 right-44 w-80 h-half bg-white border border-gray-200 rounded-xl shadow-2xl flex flex-col z-20 overflow-hidden text-xs">
+    <div class="p-3 bg-purple-600 text-white font-bold flex justify-between items-center shrink-0">
+      <span>📔 Acacia Notebook</span>
+      <button onclick="toggleAcaciaNotebook()" class="hover:text-purple-200 font-bold text-sm">✕</button>
+    </div>
+    <div class="p-2 bg-slate-50 border-b border-gray-200 flex gap-1 shrink-0">
+      <button onclick="setNoteCategory('Work')" class="px-2 py-1 bg-purple-100 text-purple-700 rounded-md font-medium hover:bg-purple-200">Work</button>
+      <button onclick="setNoteCategory('Personal')" class="px-2 py-1 bg-blue-100 text-blue-700 rounded-md font-medium hover:bg-blue-200">Personal</button>
+      <button onclick="setNoteCategory('Ideas')" class="px-2 py-1 bg-amber-100 text-amber-700 rounded-md font-medium hover:bg-amber-200">Ideas</button>
+    </div>
+    <div id="acaciaNoteList" class="flex-1 overflow-y-auto p-3 space-y-2 bg-slate-50/50"></div>
+    <div class="p-2 bg-white border-t border-gray-100 flex gap-1 shrink-0">
+      <input id="acaciaNoteText" type="text" placeholder="Write plan note..." class="flex-1 h-8 px-2 border border-gray-300 rounded-md outline-none text-xs" />
+      <button onclick="saveAcaciaNote()" class="px-3 bg-purple-600 hover:bg-purple-700 text-white rounded-md font-bold text-xs">Save</button>
+      <button onclick="clearAcaciaNotes()" class="px-2 border border-gray-200 text-gray-500 rounded-md hover:bg-gray-50 text-xs">Clear</button>
+    </div>
+  </div>
+
+  <div id="webinarPanel" class="hidden fixed top-20 right-44 w-80 h-half bg-white border border-gray-200 rounded-xl shadow-2xl flex flex-col z-20 overflow-hidden text-xs">
+    <div class="p-3 bg-rose-600 text-white font-bold flex justify-between items-center shrink-0">
+      <span>🎥 Webinar Scheduler</span>
+      <button onclick="toggleWebinarPanel()" class="hover:text-rose-200 font-bold text-sm">✕</button>
+    </div>
+    <div class="p-3 border-b border-gray-200 bg-slate-50 space-y-2 shrink-0">
+      <input id="webinarTitle" type="text" placeholder="Webinar Session Title" class="w-full h-8 px-2 border border-gray-300 rounded-md outline-none text-xs bg-white" />
+      <div class="grid grid-cols-2 gap-1.5">
+        <input id="webinarDate" type="datetime-local" class="h-8 px-2 border border-gray-300 rounded-md outline-none text-xs bg-white" />
+        <input id="webinarLink" type="text" placeholder="Meeting URL Link" class="h-8 px-2 border border-gray-300 rounded-md outline-none text-xs bg-white" />
       </div>
+      <div class="flex gap-1.5">
+        <button onclick="addWebinar()" class="flex-1 h-8 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-md text-xs">Add Session</button>
+        <button onclick="clearWebinars()" class="px-2 border border-gray-200 text-gray-500 rounded-md hover:bg-gray-50 text-xs">Clear</button>
+      </div>
+    </div>
+    <div id="webinarList" class="flex-1 overflow-y-auto p-3 space-y-2 bg-slate-50/50"></div>
+  </div>
+
+  <div id="commPanel" class="hidden fixed top-20 right-44 w-80 h-half bg-white border border-gray-200 rounded-xl shadow-2xl flex flex-col z-20 overflow-hidden text-xs">
+    <div class="p-3 bg-blue-700 text-white font-bold flex justify-between items-center shrink-0">
+      <span>💬 Dispatch Terminal</span>
+      <button onclick="toggleCommPanel()" class="hover:text-blue-200 font-bold text-sm">✕</button>
+    </div>
+    <div class="p-3 border-b border-gray-200 bg-slate-50 space-y-2 shrink-0">
+      <input id="commUser" type="text" placeholder="Recipient user identifier" class="w-full h-8 px-2 border border-gray-300 rounded-md outline-none text-xs bg-white" />
+      <textarea id="commMessage" placeholder="Type internal memo data lines..." class="w-full h-14 p-2 border border-gray-300 rounded-md outline-none text-xs resize-none bg-white"></textarea>
+      <div class="flex gap-1 justify-between items-center">
+        <div class="flex gap-1">
+          <button onclick="insertTemplate('Payslip Link')" class="px-1.5 py-0.5 bg-gray-200 rounded text-[10px] text-gray-600 hover:bg-gray-300">Payslip template</button>
+          <button onclick="insertTemplate('Payroll Report')" class="px-1.5 py-0.5 bg-gray-200 rounded text-[10px] text-gray-600 hover:bg-gray-300">Report update</button>
+        </div>
+        <button onclick="sendPrivateMessage()" class="px-3 h-7 bg-blue-700 hover:bg-blue-800 text-white font-bold rounded-md text-xs">Send</button>
+      </div>
+      <button onclick="sharePrivateReport()" class="w-full h-7 border border-blue-200 text-blue-700 hover:bg-blue-50 font-medium rounded-md text-xs">Share Cryptographic Ledger Report Context</button>
+    </div>
+    <div id="commLog" class="flex-1 overflow-y-auto p-3 space-y-2 bg-slate-50/50"></div>
+  </div>
+
+  <div id="supportPopup" class="hidden fixed bottom-20 right-4 w-96 bg-white border border-gray-300 rounded-lg shadow-xl z-50">
+    <div class="bg-blue-900 text-white px-3 py-2 rounded-t-lg flex justify-between items-center">
+      <div>
+        <h3 class="font-bold">🎧 Acacia AI Support</h3>
+        <small class="text-blue-100">Ask me anything about Acacia Payroll Hub</small>
+      </div>
+      <button onclick="toggleSupportPopup()" class="text-white text-xl hover:text-gray-200">✕</button>
+    </div>
+
+    <div id="supportMessages" class="h-80 overflow-y-auto p-3 bg-white text-black text-sm space-y-2">
+      <div class="bg-white border border-gray-300 rounded-lg shadow-sm p-3">
+        <h2 class="text-base font-bold text-blue-900 mb-1">🎧 Welcome to Acacia AI Support</h2>
+        <p class="text-gray-700 text-xs mb-3">I'm your intelligent Acacia Payroll Hub assistant. I can guide you through managing employees, attendance, earnings, payslips, statutory deductions, and payroll reports.</p>
+        
+        <p class="font-semibold text-gray-800 text-xs mb-1">💵 Covered Payroll Modules:</p>
+        <div class="grid grid-cols-2 gap-1 text-xs mb-3 text-gray-700">
+          <div>👥 Employees</div>
+          <div>💰 Earnings</div>
+          <div>📊 Gross Pay</div>
+          <div>📅 Attendance</div>
+          <div>📄 Payslips</div>
+          <div>⚖️ Statutory Deductions</div>
+          <div>📈 Payroll Reports</div>
+          <div>🔌 Integrations</div>
+        </div>
+
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-2 mb-1">
+          <p class="font-semibold text-blue-900 text-xs mb-1">💬 Try asking:</p>
+          <ul class="list-disc ml-4 space-y-0.5 text-gray-700 text-xs">
+            <li>How do I add a new employee?</li>
+            <li>How are statutory deductions calculated?</li>
+            <li>Where do I review monthly payslips?</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="border-t p-2 bg-gray-50 flex flex-col gap-1">
+      <div class="flex gap-1">
+        <a href="https://wa.me/254717346231" target="_blank" class="flex-1 flex items-center justify-center gap-1 bg-green-600 hover:bg-green-700 text-white py-1.5 rounded text-xs font-semibold transition">📱 WhatsApp</a>
+        <a href="mailto:info@acaciabooks.ke" class="flex-1 flex items-center justify-center gap-1 bg-gray-600 hover:bg-gray-700 text-white py-1.5 rounded text-xs font-semibold transition">📧 Email</a>
+        <button onclick="toggleTawkChat()" class="flex-1 flex items-center justify-center gap-1 bg-blue-600 hover:bg-blue-700 text-white py-1.5 rounded text-xs font-semibold transition">💬 Chat</button>
+      </div>
+    </div>
+
+    <div class="border-t p-2">
+      <input id="supportQuestion" type="text" class="w-full border border-gray-300 rounded px-2 py-1.5 mb-1.5 text-xs text-black placeholder-gray-400 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Type your payroll question...">
+      <button onclick="sendSupportQuestion()" class="w-full bg-blue-900 hover:bg-blue-800 text-white py-1.5 rounded text-xs font-semibold transition">Send</button>
     </div>
   </div>
 </div>
 
-<div id="app">
-  <aside class="sidebar">
-    <div class="brand">
-      <div class="mark">ACACIA BOOKS</div>
-      <h1>Acacia Projects</h1>
+<!-- Acacia Mail Bridge Modal -->
+<div id="mailModal" class="hidden fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
+  <div class="w-full max-w-lg bg-white rounded-2xl shadow-2xl overflow-hidden">
+    <div class="flex items-center justify-between px-5 py-3 border-b border-slate-100 bg-acacia-800 text-white">
+      <div class="font-semibold text-sm">New message · Acacia Mail</div>
+      <button onclick="closeMail()" class="text-white/80 hover:text-white text-lg">✕</button>
     </div>
-    <nav id="nav"></nav>
-    <div class="foot" style="display:flex;flex-direction:column;gap:8px;">
-      <div id="sidebarUser" style="color:#DCE6DC;"></div>
-      <button class="link-btn" style="color:var(--gold);text-align:left;" onclick="handleLogout()">Log out</button>
-    </div>
-  </aside>
-  <div class="main">
-    <div class="topbar">
-      <div class="titles">
-        <div class="eyebrow" id="pageEyebrow">Overview</div>
-        <h2 id="pageTitle">Dashboard</h2>
+    <form onsubmit="sendMailFromApp(event)" class="p-5 space-y-3">
+      <div><label class="text-xs font-semibold text-slate-600">To</label>
+        <input id="mmTo" type="email" required class="w-full mt-1 h-10 px-3 rounded-lg border border-slate-300 text-sm" placeholder="recipient@example.com"/></div>
+      <div><label class="text-xs font-semibold text-slate-600">Subject</label>
+        <input id="mmSubject" type="text" required class="w-full mt-1 h-10 px-3 rounded-lg border border-slate-300 text-sm"/></div>
+      <div><label class="text-xs font-semibold text-slate-600">Message</label>
+        <textarea id="mmBody" rows="6" required class="w-full mt-1 px-3 py-2 rounded-lg border border-slate-300 text-sm"></textarea></div>
+      <p id="mmStatus" class="text-xs text-slate-500"></p>
+      <div class="flex justify-end gap-2">
+        <button type="button" onclick="closeMail()" class="px-4 h-9 rounded-lg border border-slate-200 text-sm">Cancel</button>
+        <button type="submit" class="px-5 h-9 rounded-lg bg-acacia-600 hover:bg-acacia-700 text-white text-sm font-semibold">Send</button>
       </div>
-      <div class="actions" id="topActions"></div>
-      <button class="icon-btn" id="themeToggle" onclick="toggleTheme()" title="Toggle dark mode" style="font-size:17px;border:1px solid var(--line);border-radius:var(--radius);padding:6px 9px;">🌙</button>
-    </div>
-    <div class="content" id="content"></div>
+    </form>
   </div>
 </div>
 
-<div class="modal-overlay" id="modalOverlay">
-  <div class="modal">
-    <div class="modal-head">
-      <h3 id="modalTitle">New item</h3>
-      <button class="icon-btn" onclick="closeModal()" style="font-size:18px;">✕</button>
+<!-- Dynamic Entry Creator Modal Form (Replaces Window Prompts) -->
+<div id="entryModal" class="hidden fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4 fade-in">
+  <div class="w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden">
+    <div class="flex items-center justify-between px-5 py-4 border-b border-slate-100 bg-slate-50">
+      <h3 id="entryModalTitle" class="font-bold text-slate-800 text-base">Add Record</h3>
+      <button onclick="closeEntryModal()" class="text-slate-400 hover:text-slate-600 text-lg">✕</button>
     </div>
-    <div class="modal-body" id="modalBody"></div>
-    <div class="modal-foot">
-      <button class="btn" onclick="closeModal()">Cancel</button>
-      <button class="btn primary" id="modalSaveBtn">Save</button>
-    </div>
+    <form id="entryModalForm" onsubmit="saveNewRecord(event)" class="p-5 space-y-4">
+      <div id="entryModalFields" class="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
+        <!-- Dynamic field input fields injected here -->
+      </div>
+      <div class="flex justify-end gap-2 pt-2 border-t border-slate-100">
+        <button type="button" onclick="closeEntryModal()" class="px-4 h-10 rounded-lg border border-slate-200 text-sm font-medium hover:bg-slate-50">Cancel</button>
+        <button type="submit" class="px-5 h-10 rounded-lg bg-acacia-600 hover:bg-acacia-700 text-white text-sm font-semibold shadow-sm">Save Record</button>
+      </div>
+    </form>
   </div>
 </div>
-
-<div class="toast" id="toast"></div>
 
 <script src="acacia-actions.js"></script>
 <script src="script.js"></script>
-<script src="acacia-bridge.js"></script>
 <script src="acacia-help.js"></script>
-<script src="acacia-sidebar.js"></script>
-<script src="acacia-brand.js"></script>
+<script src="acacia-bell.js"></script><script src="acacia-signout.js"></script>
 </body>
 </html>
