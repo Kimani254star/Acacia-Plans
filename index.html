@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
-<head><link rel="manifest" href="manifest.webmanifest"><link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png"><link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Plans"><meta name="theme-color" content="#1b5e20"><script src="acacia-theme.js"></script>
+<head><script src="acacia-theme.js"></script>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Acacia Plans — Plan Hub, Progress & Revenue</title>
@@ -23,15 +23,7 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css">
 <script>window.ACACIA_APPEARANCE={sidebar:'aside.w-60',items:'aside.w-60 .nav-btn'};</script>
 <script src="acacia-appearance.js"></script>
-<style id="acxRsbLabels">body:has(#rightSidebar:not(.hidden)) #acxhFab,body:has(#rightSidebar:not(.hidden)) #acxhPop,body:has(#rightSidebar:not(.hidden)) #acxsRoot{right:11rem!important}</style><style>#homePage>:not(#acxLanding){display:none!important}#acxLanding{position:fixed;inset:0;width:100%;height:100%;border:0;z-index:2147483000;background:#fff}</style><link rel="stylesheet" href="acacia-dash.css"><script>(function(){try{if('serviceWorker' in navigator&&true)window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){})});}catch(e){}
-var dp=null,btn=null;function sa(){return(window.matchMedia&&matchMedia('(display-mode: standalone)').matches)||navigator.standalone===true}
-function hide(){if(btn&&btn.parentNode)btn.parentNode.removeChild(btn);btn=null}
-window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();dp=e;if(sa()||btn)return;try{if(sessionStorage.getItem('acx_install_hidden'))return}catch(x){}
-function show(){if(btn||!document.body)return;btn=document.createElement('div');btn.style.cssText='position:fixed;right:16px;bottom:16px;z-index:2147483000;display:flex;align-items:center;gap:6px;background:#1b5e20;color:#fff;border-radius:999px;padding:9px 8px 9px 16px;font:600 13px system-ui,Segoe UI,sans-serif;box-shadow:0 4px 14px rgba(0,0,0,.28);cursor:pointer';
-btn.innerHTML='<span>Install app</span><span data-x="1" style="padding:0 8px;opacity:.85;font-size:16px;line-height:1">&times;</span>';
-btn.addEventListener('click',function(ev){if(ev.target&&ev.target.getAttribute&&ev.target.getAttribute('data-x')){try{sessionStorage.setItem('acx_install_hidden','1')}catch(x){}hide();return}if(!dp)return;dp.prompt();dp.userChoice.then(function(){dp=null;hide()},function(){})});document.body.appendChild(btn)}
-if(document.body)show();else document.addEventListener('DOMContentLoaded',show)});
-window.addEventListener('appinstalled',hide)})();</script></head>
+<style id="acxRsbLabels">body:has(#rightSidebar:not(.hidden)) #acxhFab,body:has(#rightSidebar:not(.hidden)) #acxhPop,body:has(#rightSidebar:not(.hidden)) #acxsRoot{right:11rem!important}</style><style>#homePage>:not(#acxLanding){display:none!important}#acxLanding{position:fixed;inset:0;width:100%;height:100%;border:0;z-index:2147483000;background:#fff}</style><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&display=swap"><script>window.ADX_TAGLINE='Plan. Execute. Deliver.';</script><link rel="stylesheet" href="acacia-dash.css"><link rel="stylesheet" href="acacia-rebuild.css"><script src="acacia-dash.js"></script></head>
 <body class="text-slate-800">
 
 <!-- Authentication Screen -->
@@ -281,7 +273,7 @@ window.addEventListener('appinstalled',hide)})();</script></head>
 <div id="app" class="hidden flex-col h-screen">
   <header class="flex items-center justify-between px-4 h-14 bg-white border-b border-slate-200 shrink-0">
     <div class="flex items-center gap-3">
-      
+      <button id="acxBurger" type="button" onclick="acxDrawer(true)" aria-label="Open menu" class="lg:hidden p-2 rounded-lg hover:bg-slate-100 text-slate-600"><svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
       <!-- Company Logo Section -->
       <div class="flex items-center gap-2 pr-3 border-r border-slate-200">
         <img src="acaciabooks-logo.png" alt="Logo" class="h-8 w-auto object-contain" />
@@ -493,8 +485,8 @@ window.addEventListener('appinstalled',hide)})();</script></head>
 
 <script src="acacia-actions.js"></script>
 <script src="script.js"></script>
+<script src="acacia-rebuild.js"></script>
 <script src="acacia-help.js"></script>
 <script src="acacia-bell.js"></script><script src="acacia-signout.js"></script>
-<script src="acacia-dash.js"></script><script src="acacia-dash-plans.js"></script>
 </body>
 </html>

@@ -547,6 +547,47 @@ function renderView(){
   return renderLinked(m);
 }
 
+/* ---- Plan Hub dashboard (KPIs, plan cards, portfolio, progress, actions, activity) ---- */
+function planDash(){
+  const A = ADX, C = A.C, ps = plansList().filter(Boolean), today = todayStr();
+  const prog = p => Math.max(0, Math.min(100, parseFloat(p.progress)||0));
+  const late = p => p.endDate && p.endDate < today && p.status !== 'Completed';
+  const done = ps.filter(p=>p.status==='Completed'), delayed = ps.filter(late);
+  const running = ps.filter(p=>p.status==='In Progress');
+  const avg = ps.length ? Math.round(ps.reduce((s,p)=>s+prog(p),0)/ps.length) : 0;
+  const upd = (store.progress||[]).filter(r=>r && r.date && !isNaN(new Date(r.date)));
+  const ms = A.months(6), byM = {};
+  upd.forEach(r=>{ const d = new Date(r.date), k = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'); (byM[k] = byM[k]||[]).push(parseFloat(r.progress)||0); });
+  const trend = ms.map(m=>({l:m.l, v: byM[m.k] ? Math.round(byM[m.k].reduce((a,b)=>a+b,0)/byM[m.k].length) : null}));
+  let last = 0; trend.forEach(t=>{ if(t.v==null) t.v = last; else last = t.v; });
+  const acts = (store.actions||[]).filter(r=>r && r.due && r.status!=='Completed').sort((a,b)=>String(a.due).localeCompare(String(b.due))).slice(0,4);
+  const recent = [...upd].sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,4);
+  const team = t => { const o = (store.ownership||[]).filter(r=>r && r.planTitle===t); return o.reduce((n,r)=>n+(Array.isArray(r.team)?r.team.length:0),0) || o.length; };
+  const idx = p => plansList().indexOf(p);
+  const cards = ps.slice(0,6).map(p=>`<div class="adx-plan"><h4>${escapeHtml(p.title)}</h4><p>${escapeHtml(p.department||p.goalType||'Plan')}</p>${A.hb('Progress', prog(p))}<div class="m"><span>Due: ${escapeHtml(p.endDate||'not set')}</span><span>${team(p.title)} team</span></div><div style="text-align:right;margin-top:6px"><button class="adx-btn" onclick="openPlan(${idx(p)})">View Plan</button></div></div>`).join('');
+  const rev = ps.filter(p=>parseFloat(p.targetAmount)>0).slice(0,5);
+  return `<div class="adx-wrap" style="margin-bottom:6px">
+  <div class="adx-grid adx-g4">
+    ${A.kpi({i:'file',l:'Total Plans',v:ps.length,d:`<div class="adx-d fl">${running.length} in progress</div>`})}
+    ${A.kpi({i:'folder',c:'b',l:'Active Plans',v:running.length})}
+    ${A.kpi({i:'check',c:'o',l:'Completed Plans',v:done.length})}
+    ${A.kpi({i:'clock',c:'p',l:'Average Progress',v:avg+'%',d:`<div class="adx-d ${delayed.length?'dn':'fl'}">${delayed.length} past due date</div>`})}
+  </div>
+  <div class="adx-grid adx-g21">
+    ${A.panel('Your Plans', ps.length ? `<div class="adx-plans">${cards}</div>` : '<div class="adx-empty">No plans yet. Click <b>+ New Plan</b> to create your first plan, or create one in Acacia Books.</div>', {i:'file'})}
+    <div style="display:flex;flex-direction:column;gap:14px;min-width:0">
+      ${A.panel('Plan Portfolio', ps.length ? A.donut([{v:running.length-delayed.filter(p=>p.status==='In Progress').length,c:C.g,l:'On Track'},{v:delayed.length,c:C.o,l:'Delayed'},{v:done.length,c:C.b,l:'Completed'},{v:ps.length-running.length-done.length-delayed.filter(p=>p.status!=='In Progress').length,c:C.gl,l:'Not started'}].map(x=>({...x,v:Math.max(0,x.v)})), ps.length, 'Plans') : '<div class="adx-empty">No plans yet.</div>', {i:'chart'})}
+      ${A.panel('Plan Progress', A.line(trend, {pct:true, max:100}), {i:'trend'})}
+    </div>
+  </div>
+  <div class="adx-grid adx-g111">
+    ${A.panel('Upcoming Actions', acts.length ? acts.map(a=>A.row('check', `${escapeHtml(a.item||'')}<div style="font-size:11.5px;color:var(--ax-mut)">${escapeHtml(a.title||'')}</div>`, escapeHtml(a.due), "go('actions')")).join('') : '<div class="adx-empty">No open action items.</div>', {i:'clock', link:['View all',"go('actions')"]})}
+    ${A.panel('Recent Activities', recent.length ? recent.map(r=>A.row('', `Progress ${escapeHtml(r.progress)}% on <b>${escapeHtml(r.title||'')}</b>`, escapeHtml(r.person||''), "go('progress')")).join('') : '<div class="adx-empty">Progress updates will show here.</div>', {i:'trend'})}
+    ${A.panel('Revenue vs Target', rev.length ? rev.map(p=>{ const t = parseFloat(p.targetAmount)||1; return A.hb(p.title, collected(p.title)/t*100, 'KES '+A.short(collected(p.title))+' / '+A.short(t)); }).join('') : '<div class="adx-empty">Set a target amount on a plan to track revenue.</div>', {i:'cash', link:['Revenue',"go('revenue')"]})}
+  </div>
+  </div>`;
+}
+
 /* ---- Plan Hub: create plans + All Plans ---- */
 function renderPlans(m){
   const ps = plansList();
@@ -554,7 +595,6 @@ function renderPlans(m){
   const run = ps.filter(p => p.status==='In Progress').length;
   const target = ps.reduce((s,p)=>s+(parseFloat(p.targetAmount)||0),0);
   const got = ps.reduce((s,p)=>s+collected(p.title),0);
-  const card = (t,v) => `<div class="bg-white rounded-xl border border-slate-200 p-4"><div class="text-[11px] uppercase font-semibold text-slate-400">${t}</div><div class="text-xl font-bold text-slate-800 mt-1">${v}</div></div>`;
   view.innerHTML = `
     <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
       <div><h2 class="text-2xl font-bold text-slate-800">🗂️ Plan Hub</h2>
@@ -565,9 +605,8 @@ function renderPlans(m){
         <button onclick="openForm()" class="px-4 py-2 text-sm bg-acacia-600 hover:bg-acacia-700 text-white rounded-lg font-semibold">+ New Plan</button>
       </div>
     </div>
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-      ${card('Plans', ps.length)}${card('In progress', run)}${card('Completed', done)}${card('Revenue collected / target', fmtKES(got)+' / '+fmtKES(target))}
-    </div>
+    ${planDash()}
+    <h3 class="font-bold mb-2" style="font-family:var(--ax-serif);font-size:18px">All Plans</h3>
     <div class="bg-white rounded-xl border border-slate-200 overflow-hidden"><div class="overflow-x-auto">
       <table class="w-full text-sm"><thead class="bg-slate-50 text-left text-xs uppercase text-slate-500"><tr>
         <th class="px-3 py-2">Plan</th><th class="px-3 py-2">Department</th><th class="px-3 py-2">Goal</th><th class="px-3 py-2">Priority</th>

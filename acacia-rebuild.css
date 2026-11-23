@@ -1,0 +1,32 @@
+/* acacia-rebuild.css - sidebar icons, smart tables, report tabs and the responsive layout */
+aside.w-60 .nav-btn{display:flex;align-items:center}
+.acx-ni{display:inline-flex;flex:none;margin-right:10px;opacity:.8}.acx-ni svg{width:18px;height:18px}
+.acx-tb,.acx-pg{display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:10px 12px}
+.acx-tb{border-bottom:1px solid var(--ax-line)}
+.acx-pg{justify-content:space-between;border-top:1px solid var(--ax-line);font-size:12.5px;color:var(--ax-mut)}
+.acx-pg div{display:flex;gap:6px}
+.acx-tb input,.acx-tb select,.acx-pg select,.acx-tb button,.acx-pg button{height:36px;padding:0 12px;border:1px solid var(--ax-line);border-radius:8px;background:var(--ax-card);color:var(--ax-ink);font-size:13px}
+.acx-tb input{flex:1;min-width:160px}
+.acx-tb button:hover,.acx-pg button:hover:not(:disabled){background:var(--ax-gs);color:var(--ax-gd)}
+.acx-pg button:disabled{opacity:.4;cursor:default}
+.acx-tb :focus-visible,.acx-pg :focus-visible,.acx-tabs :focus-visible,th[data-s]:focus-visible{outline:2px solid var(--ax-g);outline-offset:1px}
+th[data-s]{cursor:pointer;user-select:none;white-space:nowrap}
+th[data-s]::after{content:" \2195";opacity:.35}
+th[aria-sort=ascending]::after{content:" \2191";opacity:1}
+th[aria-sort=descending]::after{content:" \2193";opacity:1}
+.acx-tabs{display:flex;gap:6px;overflow-x:auto;margin-bottom:14px;padding-bottom:2px}
+.acx-tabs button{white-space:nowrap;padding:8px 14px;border-radius:999px;border:1px solid var(--ax-line);background:var(--ax-card);color:var(--ax-ink);font-size:13px;font-weight:600}
+.acx-tabs button.on{background:var(--ax-g);border-color:var(--ax-g);color:#fff}
+#planSearch{display:none}
+#acxScrim{display:none}
+@media(max-width:1023px){
+  aside.w-60{position:fixed;left:0;top:56px;bottom:0;z-index:40;transform:translateX(-100%);transition:transform .2s;box-shadow:4px 0 24px rgba(0,0,0,.18)}
+  aside.w-60.acx-open{transform:none}
+  #acxScrim.on{display:block;position:fixed;inset:56px 0 0 0;background:rgba(0,0,0,.4);z-index:35}
+  #rightSidebar{display:none!important}
+}
+@media(max-width:640px){
+  main.p-6{padding:12px!important}
+  #app>header button[onclick="openMail()"],#app>header a[href*="acacia-books"],#app>header .uppercase.leading-tight{display:none}
+}
+@media(prefers-reduced-motion:reduce){aside.w-60{transition:none}}
