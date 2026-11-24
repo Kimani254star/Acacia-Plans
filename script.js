@@ -567,7 +567,7 @@ function planDash(){
   const idx = p => plansList().indexOf(p);
   const cards = ps.slice(0,6).map(p=>`<div class="adx-plan"><h4>${escapeHtml(p.title)}</h4><p>${escapeHtml(p.department||p.goalType||'Plan')}</p>${A.hb('Progress', prog(p))}<div class="m"><span>Due: ${escapeHtml(p.endDate||'not set')}</span><span>${team(p.title)} team</span></div><div style="text-align:right;margin-top:6px"><button class="adx-btn" onclick="openPlan(${idx(p)})">View Plan</button></div></div>`).join('');
   const rev = ps.filter(p=>parseFloat(p.targetAmount)>0).slice(0,5);
-  return `<div class="adx-wrap" style="margin-bottom:6px">
+  return `<div class="adx-wrap adx-dash" style="margin-bottom:6px">
   <div class="adx-grid adx-g4">
     ${A.kpi({i:'file',l:'Total Plans',v:ps.length,d:`<div class="adx-d fl">${running.length} in progress</div>`})}
     ${A.kpi({i:'folder',c:'b',l:'Active Plans',v:running.length})}

@@ -65,3 +65,8 @@ body aside.w-60{color:var(--ax-ink)!important}
 body aside.w-60 .nav-btn{color:var(--ax-ink)!important}
 body aside.w-60 .nav-btn.active{color:#fff!important}
 body aside.w-60 .text-slate-400,body aside.w-60 summary{color:var(--ax-mut)!important}
+
+/* dashboard only (Plans Overview): fill the space between the left menu and the right bar */
+.adx-wrap.adx-dash{max-width:none;width:100%;margin:0}
+.adx-dash .adx-plans{grid-template-columns:repeat(auto-fill,minmax(250px,1fr))}
+.adx-dash .adx-panel{min-width:0}
