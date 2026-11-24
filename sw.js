@@ -1,6 +1,6 @@
 /* Acacia Workspace - installable Plans and Budget Management workspace. Pages always come from the network when online;
    a saved copy is only used if the connection fails. Cross-origin requests (Supabase, CDNs) are never touched. */
-var V = 'acx-workspace-v1';
+var V = 'acx-workspace-v2';
 var SHELL = ['./', 'index.html', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png', 'apple-touch-icon.png', 'favicon-32.png'];
 self.addEventListener('install', function (e) {
   e.waitUntil(caches.open(V).then(function (c) { return Promise.all(SHELL.map(function (u) { return c.add(u).catch(function () {}); })); }).then(function () { return self.skipWaiting(); }));
