@@ -615,6 +615,7 @@ function renderPlans(m){
         <th class="px-3 py-2">Progress</th><th class="px-3 py-2">Status</th><th class="px-3 py-2">Owner</th><th class="px-3 py-2"></th></tr></thead>
         <tbody id="plansBody"></tbody></table></div></div>`;
   filterPlans();
+  if(NI().dash){ const b=document.getElementById('plansBody'), c=b&&b.closest('.bg-white'); if(c){ if(c.previousElementSibling) c.previousElementSibling.remove(); c.remove(); } const q=document.getElementById('planSearch'); if(q) q.remove(); }
 }
 function filterPlans(){
   const q = ((document.getElementById('planSearch')||{}).value||'').toLowerCase();
@@ -628,7 +629,7 @@ function filterPlans(){
       <td class="px-3 py-2 whitespace-nowrap">${escapeHtml(p.startDate||'?')} → ${escapeHtml(p.endDate||'?')}</td>
       <td class="px-3 py-2 text-right">${cell('targetAmount',p.targetAmount)}</td><td class="px-3 py-2 text-right">${cell('amount',collected(p.title))}</td>
       <td class="px-3 py-2 min-w-[110px]"><div class="h-2 bg-slate-100 rounded-full overflow-hidden"><div class="h-2 bg-acacia-600" style="width:${pct}%"></div></div><div class="text-[11px] text-slate-500 mt-1">${pct}%</div></td>
-      <td class="px-3 py-2">${statusBadge(p.status)}</td><td class="px-3 py-2">${escapeHtml(p.owner||'')}</td>
+      <td class="px-3 py-2 whitespace-nowrap">${statusBadge(p.status)}</td><td class="px-3 py-2">${escapeHtml(p.owner||'')}</td>
       <td class="px-3 py-2 acx-cell">${ACX_ACT({view:`openPlan('${i}')`, edit:`openForm(${i})`, clone:`cloneRow(${i})`, del:`delRow(${i})`, title:'Plan — '+(p.title||'')})}</td></tr>`;
   }).join('') : `<tr><td colspan="11" class="text-center text-slate-400 py-10">No plans yet. Click <b>+ New Plan</b> to create your first plan, or create one in Acacia Books.</td></tr>`;
 }
