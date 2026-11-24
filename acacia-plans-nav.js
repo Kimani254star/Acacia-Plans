@@ -123,14 +123,11 @@
   w.curMod = () => MODULES.find(x => x.id === w.NI().mod);
   w.ACX_NAV = G;
 
-  /* menu: six collapsible sections, then Settings (kept) */
-  const open = new Set(['Plan Dashboard']);
+  /* menu: six sections, always fully shown (no arrows to click), then Settings (kept) */
   w.renderNav = function () {
-    const g0 = G.find(g => g[1].some(i => i[0] === active)); if (g0) open.add(g0[0]);
     const btn = (id, l) => `<button onclick="go('${id}')" class="nav-btn w-full text-left px-3 py-2 rounded-lg hover:bg-slate-100 ${id === active ? 'active' : ''}">${E(l)}</button>`;
-    navList.innerHTML = G.map((g, n) => `<details data-g="${E(g[0])}" ${open.has(g[0]) ? 'open' : ''}><summary class="cursor-pointer select-none text-[10px] font-bold uppercase text-slate-400 px-2 pt-3 pb-1">${n + 1}. ${E(g[0])}</summary>${g[1].map(i => btn(i[0], i[1])).join('')}</details>`).join('')
+    navList.innerHTML = G.map((g, n) => `<div class="text-[10px] font-bold uppercase text-slate-400 px-2 pt-4 pb-1">${n + 1}. ${E(g[0])}</div>${g[1].map(i => btn(i[0], i[1])).join('')}`).join('')
       + `<div class="text-[10px] font-bold uppercase text-slate-400 px-2 pt-4 pb-1">Settings</div>` + btn('appearance', '🎨 Appearance');
-    navList.querySelectorAll('details').forEach(d => d.addEventListener('toggle', () => d.open ? open.add(d.dataset.g) : open.delete(d.dataset.g)));
   };
   w.go = function (id) { active = id; editIdx = null; renderNav(); renderView(); if (N[id] && id === 'create') openForm(); };
 
