@@ -1,7 +1,7 @@
 {
-  "name": "Acacia Plans",
-  "short_name": "Plans",
-  "description": "Plans, progress and revenue, synced with Acacia Books.",
+  "name": "Acacia Workspace",
+  "short_name": "Acacia",
+  "description": "Acacia Plans Plan Hub and Acacia Projects Budget Management in one installable application.",
   "id": "./",
   "start_url": "./",
   "scope": "./",

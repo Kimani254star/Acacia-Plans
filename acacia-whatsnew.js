@@ -18,7 +18,6 @@
   var ikey = function(x){ return x.id + '|' + (x.invited_at || ''); };
   var meetHref = function(x){
     var u = x.join_url || '', m = /[?&]room=([^&#]+)/.exec(u);
-    if (m && CFG.keepJoinUrl) return safe(u) + (/[?&]webinar=/.test(u) ? '' : '&webinar=' + encodeURIComponent(x.id));
     if (m) return (CFG.meetUrl || 'meet.html') + '?room=' + m[1] + '&webinar=' + encodeURIComponent(x.id);
     return safe(u);
   };
