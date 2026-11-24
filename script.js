@@ -534,7 +534,7 @@ function renderNav(){
   navList.innerHTML = MODULES.filter(m => !m.hidden).map(m => {
     let head = '';
     if(m.group && m.group !== last){ last = m.group; head = `<div class="text-[10px] font-bold uppercase text-slate-400 px-2 pt-4 pb-1">${escapeHtml(m.group)}</div>`; }
-    return head + `<button onclick="go('${m.id}')" class="nav-btn w-full text-left px-3 py-2 rounded-lg hover:bg-slate-100 ${m.id===active?'active':''}">${escapeHtml(m.label)}</button>`;
+    return head + `<button onclick="go('${m.id}')" class="nav-btn w-full text-left px-3 py-2 rounded-lg hover:bg-slate-100 ${m.id===active?'active':''}">${escapeHtml(NI().label)}</button>`;
   }).join('')
     + `<div class="text-[10px] font-bold uppercase text-slate-400 px-2 pt-4 pb-1">Settings</div><button onclick="go('appearance')" class="nav-btn w-full text-left px-3 py-2 rounded-lg hover:bg-slate-100 ${active==='appearance'?'active':''}">🎨 Appearance</button>`;
 }
@@ -542,7 +542,8 @@ function go(id){ active = id; editIdx = null; renderNav(); renderView(); }
 
 function renderView(){
   if(active==='appearance'){ view.innerHTML = '<div class="mb-4"><h2 class="text-2xl font-bold text-slate-800">🎨 Appearance</h2><p class="text-sm text-slate-500">Sidebar colour, text colour, font and font size.</p></div><div data-acacia-appearance></div>'; return; }
-  const m = MODULES.find(x => x.id===active);
+  const m = curMod();
+  if(NI().view) return NI().view();
   if(m.id==='plans') return renderPlans(m);
   return renderLinked(m);
 }
@@ -597,7 +598,7 @@ function renderPlans(m){
   const got = ps.reduce((s,p)=>s+collected(p.title),0);
   view.innerHTML = `
     <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
-      <div><h2 class="text-2xl font-bold text-slate-800">🗂️ Plan Hub</h2>
+      <div><h2 class="text-2xl font-bold text-slate-800">🗂️ ${escapeHtml(NI().label)}</h2>
         <p class="text-sm text-slate-500">Create plans and track them from start to finish · same plans as Acacia Books</p></div>
       <div class="flex gap-2">
         <input id="planSearch" oninput="filterPlans()" placeholder="Search plans…" class="h-9 px-3 text-sm border border-slate-200 rounded-lg outline-none"/>
@@ -605,11 +606,11 @@ function renderPlans(m){
         <button onclick="openForm()" class="px-4 py-2 text-sm bg-acacia-600 hover:bg-acacia-700 text-white rounded-lg font-semibold">+ New Plan</button>
       </div>
     </div>
-    ${planDash()}
+    ${NI().dash?planDash():''}
     <h3 class="font-bold mb-2" style="font-family:var(--ax-serif);font-size:18px">All Plans</h3>
     <div class="bg-white rounded-xl border border-slate-200 overflow-hidden"><div class="overflow-x-auto">
       <table class="w-full text-sm"><thead class="bg-slate-50 text-left text-xs uppercase text-slate-500"><tr>
-        <th class="px-3 py-2">Plan</th><th class="px-3 py-2">Department</th><th class="px-3 py-2">Goal</th><th class="px-3 py-2">Priority</th>
+        <th class="px-3 py-2">Plan</th><th class="px-3 py-2">Department</th><th class="px-3 py-2">Type · Goal</th><th class="px-3 py-2">Priority</th>
         <th class="px-3 py-2">Dates</th><th class="px-3 py-2 text-right">Target</th><th class="px-3 py-2 text-right">Collected</th>
         <th class="px-3 py-2">Progress</th><th class="px-3 py-2">Status</th><th class="px-3 py-2">Owner</th><th class="px-3 py-2"></th></tr></thead>
         <tbody id="plansBody"></tbody></table></div></div>`;
@@ -617,13 +618,13 @@ function renderPlans(m){
 }
 function filterPlans(){
   const q = ((document.getElementById('planSearch')||{}).value||'').toLowerCase();
-  const rows = plansList().map((p,i)=>({p,i})).filter(x => x.p && (!q || JSON.stringify(x.p).toLowerCase().includes(q)));
+  const rows = plansList().map((p,i)=>({p,i})).filter(x => x.p && (!NI().pf || NI().pf(x.p)) && (!q || JSON.stringify(x.p).toLowerCase().includes(q)));
   const body = document.getElementById('plansBody'); if(!body) return;
   body.innerHTML = rows.length ? rows.map(({p,i}) => {
     const pct = Math.max(0,Math.min(100,parseFloat(p.progress)||0));
     return `<tr class="border-t border-slate-100 hover:bg-slate-50 align-top">
       <td class="px-3 py-2 font-semibold">${escapeHtml(p.title)}</td><td class="px-3 py-2">${escapeHtml(p.department||'')}</td>
-      <td class="px-3 py-2">${escapeHtml(p.goalType||'')}</td><td class="px-3 py-2">${escapeHtml(p.priority||'')}</td>
+      <td class="px-3 py-2">${escapeHtml(p.planType||'Annual')}${p.goalType?' · '+escapeHtml(p.goalType):''}</td><td class="px-3 py-2">${escapeHtml(p.priority||'')}</td>
       <td class="px-3 py-2 whitespace-nowrap">${escapeHtml(p.startDate||'?')} → ${escapeHtml(p.endDate||'?')}</td>
       <td class="px-3 py-2 text-right">${cell('targetAmount',p.targetAmount)}</td><td class="px-3 py-2 text-right">${cell('amount',collected(p.title))}</td>
       <td class="px-3 py-2 min-w-[110px]"><div class="h-2 bg-slate-100 rounded-full overflow-hidden"><div class="h-2 bg-acacia-600" style="width:${pct}%"></div></div><div class="text-[11px] text-slate-500 mt-1">${pct}%</div></td>
@@ -637,12 +638,12 @@ function openPlan(i){ const p = plansList()[i]; if(p){ selPlan = p.title; go('ow
 function renderLinked(m){
   const ps = plansList(), plan = curPlan();
   if(!plan){
-    view.innerHTML = `<h2 class="text-2xl font-bold text-slate-800 mb-2">${escapeHtml(m.label)}</h2>
-      <div class="bg-white rounded-xl border border-slate-200 p-10 text-center text-slate-500">Create a plan first in the <b>Plan Hub</b>.<br><button onclick="go('plans')" class="mt-4 px-4 py-2 text-sm bg-acacia-600 hover:bg-acacia-700 text-white rounded-lg font-semibold">Go to Plan Hub</button></div>`;
+    view.innerHTML = `<h2 class="text-2xl font-bold text-slate-800 mb-2">${escapeHtml(NI().label)}</h2>
+      <div class="bg-white rounded-xl border border-slate-200 p-10 text-center text-slate-500">Create a plan first in <b>Create Business Plan</b>.<br><button onclick="go('create')" class="mt-4 px-4 py-2 text-sm bg-acacia-600 hover:bg-acacia-700 text-white rounded-lg font-semibold">Create Business Plan</button></div>`;
     return;
   }
-  const rows = (store[m.id]||[]).map((r,i)=>({r,i})).filter(x => x.r && x.r[m.link]===plan.title);
-  const cols = COLS[m.id];
+  const rows = (store[m.id]||[]).map((r,i)=>({r,i})).filter(x => x.r && x.r[m.link]===plan.title && (!NI().filt||NI().filt(x.r)));
+  const cols = (NI().cols||COLS[m.id]);
   let extra = '';
   if(m.id==='revenue'){
     const got = collected(plan.title), tgt = parseFloat(plan.targetAmount)||0, pct = tgt ? Math.min(100,Math.round(got/tgt*100)) : 0;
@@ -657,7 +658,7 @@ function renderLinked(m){
   }
   view.innerHTML = `
     <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
-      <div><h2 class="text-2xl font-bold text-slate-800">${escapeHtml(m.label)}</h2>
+      <div><h2 class="text-2xl font-bold text-slate-800">${escapeHtml(NI().label)}</h2>
         <p class="text-sm text-slate-500">${rows.length} record${rows.length===1?'':'s'} for this plan · live from Acacia Books</p></div>
       <div class="flex gap-2 items-center">
         <select onchange="setPlan(this.value)" class="h-9 px-3 text-sm border border-slate-200 rounded-lg bg-white max-w-[260px]">
@@ -679,17 +680,17 @@ function renderLinked(m){
 
 /* ---- Add / edit form (modal) ---- */
 function openForm(i){
-  const m = MODULES.find(x => x.id===active); if(m.readonly) return;
+  const m = curMod(); if(m.readonly) return;
   editIdx = (i===undefined) ? null : i;
   const old = editIdx!==null ? (store[m.id]||[])[editIdx] : null;
   const names = empNames();
-  entryModalTitle.textContent = (old ? 'Edit ' : 'Add ') + (m.id==='plans' ? 'Plan' : m.label);
+  entryModalTitle.textContent = (old ? 'Edit ' : 'Add ') + (m.id==='plans' ? 'Plan' : NI().label);
   const cls = 'w-full px-3 rounded-lg border border-slate-300 outline-none text-sm focus:border-acacia-500 focus:ring-1 focus:ring-acacia-500';
-  entryModalFields.innerHTML = FIELDS[m.id].map(f => {
-    const v = old ? old[f.k] : (f.k==='date' ? todayStr() : (f.k==='status' ? 'Not Started' : (f.k==='priority' ? 'Medium' : '')));
+  entryModalFields.innerHTML = (NI().fields||FIELDS[m.id]).map(f => {
+    const v = old ? old[f.k] : (f.k==='date' ? todayStr() : (f.k==='status' ? 'Not Started' : (f.k==='priority' ? 'Medium' : (f.k==='planType' ? (NI().type||'Annual') : ''))));
     let input;
     if(f.t==='select'){
-      let opts = f.o==='employees' ? ['', ...names] : f.o;
+      let opts = f.o==='employees' ? ['', ...names] : f.o==='kpis' ? ['', ...by_('kpis').map(k=>k.kpi)] : f.o;
       if(v && !opts.includes(v)) opts = [...opts, v];
       input = `<select data-field="${f.k}" class="${cls} h-10 bg-white">${opts.map(o=>`<option value="${escapeHtml(o)}" ${o===v?'selected':''}>${o===''?'-- Select --':escapeHtml(o)}</option>`).join('')}</select>`;
     } else if(f.t==='multi'){
@@ -709,7 +710,7 @@ function closeEntryModal(){ entryModal.classList.add('hidden'); entryModalForm.r
 
 async function saveNewRecord(e){
   e.preventDefault();
-  const m = MODULES.find(x => x.id===active), fields = FIELDS[m.id], rec = {};
+  const m = curMod(), fields = (NI().fields||FIELDS[m.id]), rec = {};
   fields.forEach(f => {
     const el = entryModalFields.querySelector(`[data-field="${f.k}"]`); if(!el) return;
     if(f.t==='multi') rec[f.k] = [...el.selectedOptions].map(o => o.value);
@@ -730,7 +731,7 @@ async function saveNewRecord(e){
     rec[m.link] = plan.title;
     if(m.id==='ownership'){ rec.date = rec.date || todayStr(); Object.assign(plan,{owner:rec.owner,team:rec.team,status:rec.status}); touchPlans = true; }
     if(m.id==='progress'){ rec.progress = Math.max(0,Math.min(100,rec.progress)); rec.date = nowStr(); Object.assign(plan,{progress:rec.progress,status:rec.status}); touchPlans = true; }
-    if(m.id==='revisions'){ rec.date = nowStr(); if(/^Extend/.test(rec.action) && rec.newEndDate){ plan.endDate = rec.newEndDate; touchPlans = true; } }
+    if(m.id==='revisions'){ rec.date = nowStr(); if(NI().tag) rec.action = NI().tag; if(/^Extend/.test(rec.action) && rec.newEndDate){ plan.endDate = rec.newEndDate; touchPlans = true; } }
     if(m.id==='actions'){ rec.date = old ? old.date : nowStr(); }
     if(m.id==='revenue'){
       if(rec.amount<=0) return alert('Enter an amount greater than zero.');
@@ -759,7 +760,7 @@ function syncRevenueProgress(plan){
 
 /* Clone — same as Books: copy the record, plans get a unique "(copy)" title */
 async function cloneRow(i){
-  const m = MODULES.find(x => x.id===active); if(!m || m.readonly || m.id==='revenue') return;
+  const m = curMod(); if(!m || m.readonly || m.id==='revenue') return;
   const src = (store[m.id]||[])[i]; if(!src) return;
   const copy = JSON.parse(JSON.stringify(src));
   if(m.id==='plans'){
@@ -771,7 +772,7 @@ async function cloneRow(i){
   if(await pushOne(m)) renderView(); else await pullOne(m).then(renderView);
 }
 async function delRow(i){
-  const m = MODULES.find(x => x.id===active); if(m.readonly) return;
+  const m = curMod(); if(m.readonly) return;
   const msg = m.id==='plans' ? 'Delete this plan? Records already linked to it (progress, revenue, etc.) are kept in Acacia Books.' : 'Delete this record from Acacia Books?';
   if(!confirm(msg)) return;
   store[m.id].splice(i,1);
@@ -783,16 +784,16 @@ async function delRow(i){
 }
 
 function exportCsv(){
-  const m = MODULES.find(x => x.id===active);
+  const m = curMod();
   let head, lines;
   if(m.id==='plans'){
     head = FIELDS.plans.map(f=>f.k).concat(['progress','status','owner']);
     lines = plansList().map(p => head.map(c => JSON.stringify(cellText(p[c]))).join(','));
   } else {
     const plan = curPlan(); if(!plan) return;
-    const cols = COLS[m.id].map(c=>c[0]);
+    const cols = (NI().cols||COLS[m.id]).map(c=>c[0]);
     head = cols;
-    lines = (store[m.id]||[]).filter(r => r && r[m.link]===plan.title).map(r => cols.map(c => JSON.stringify(cellText(r[c]))).join(','));
+    lines = (store[m.id]||[]).filter(r => r && r[m.link]===plan.title && (!NI().filt||NI().filt(r))).map(r => cols.map(c => JSON.stringify(cellText(r[c]))).join(','));
   }
   const a = document.createElement('a'); a.href = 'data:text/csv,' + encodeURIComponent([head.join(','), ...lines].join('\n')); a.download = m.key + '.csv'; a.click();
 }
@@ -868,4 +869,5 @@ function boot(){
   
   renderNav(); renderView(); pullAll();
 }
-boot();
+/* boot() is called at the end of acacia-plans-nav.js */
+function by_(k){ return (store[k]||[]).filter(r => r && r.planTitle===(curPlan()||{}).title); }
