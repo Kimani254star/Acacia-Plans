@@ -392,6 +392,7 @@ const MODULES = [
   { id:'actions',   label:'Action Plan',     key:'planActionItems', link:'title' },
   { id:'revenue',   label:'Plan Revenue',    key:'planRevenue',     link:'planTitle', group:'Revenue' },
   { id:'employees', label:'Employees',       key:'employees',       hidden:true, readonly:true },
+  { id:'budgets',   label:'Budgets',         key:'budgets',         hidden:true, readonly:true },   /* Books Budgets module: the Linked budget list */
 ];
 
 const PRIORITY = ['High','Medium','Low'];
@@ -410,7 +411,7 @@ const FIELDS = {
     { k:'endDate', l:'End date', t:'date' },
     { k:'target', l:'Target' },
     { k:'targetAmount', l:'Target amount (KES)', t:'number' },
-    { k:'linkedBudget', l:'Linked budget' },
+    { k:'linkedBudget', l:'Linked budget', t:'select', o:'budgets' },
     { k:'description', l:'Description', t:'textarea' },
   ],
   ownership: [
@@ -691,7 +692,7 @@ function openForm(i){
     const v = old ? old[f.k] : (f.k==='date' ? todayStr() : (f.k==='status' ? 'Not Started' : (f.k==='priority' ? 'Medium' : (f.k==='planType' ? (NI().type||'Annual') : ''))));
     let input;
     if(f.t==='select'){
-      let opts = f.o==='employees' ? ['', ...names] : f.o==='kpis' ? ['', ...by_('kpis').map(k=>k.kpi)] : f.o;
+      let opts = f.o==='employees' ? ['', ...names] : f.o==='budgets' ? ['', ...[...new Set((store.budgets||[]).map(b=>b&&String(b.account||'').trim()).filter(Boolean))]] : f.o==='kpis' ? ['', ...by_('kpis').map(k=>k.kpi)] : f.o;
       if(v && !opts.includes(v)) opts = [...opts, v];
       input = `<select data-field="${f.k}" class="${cls} h-10 bg-white">${opts.map(o=>`<option value="${escapeHtml(o)}" ${o===v?'selected':''}>${o===''?'-- Select --':escapeHtml(o)}</option>`).join('')}</select>`;
     } else if(f.t==='multi'){
